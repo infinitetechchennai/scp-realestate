@@ -6,6 +6,70 @@ function mkDate(d: Date) {
   return format(d, 'yyyy-MM-dd');
 }
 
+// Authentic CAD dimension mapping matching the client's original survey blueprint
+const cadSurveyDimensions: Record<number, { dimensions: string; area: number; facing: PlotFacing; roadWidth: string }> = {
+  // Top Northern Boundary Plots (1 to 15)
+  1: { dimensions: "119'-7\" x 186'-10\" x 180'-3\" x 119'-5\"", area: 2200, facing: 'South', roadWidth: "16' wide road" },
+  2: { dimensions: "59'-6\" x 180'-3\" x 143'-9\" x 49'-3\"", area: 2050, facing: 'South', roadWidth: "16' wide road" },
+  3: { dimensions: "125'-2\" x 173'-9\" x 94'-8\"", area: 1950, facing: 'South', roadWidth: "16' wide road" },
+  4: { dimensions: "80' x 111'-5\"", area: 1750, facing: 'South', roadWidth: "16' wide road" },
+  5: { dimensions: "80' x 111'-6\" x 63'-11\"", area: 1750, facing: 'South', roadWidth: "16' wide road" },
+  6: { dimensions: "80' x 119'-7\" x 73'-3\"", area: 1800, facing: 'South', roadWidth: "16' wide road" },
+  7: { dimensions: "80' x 131'-2\" x 79'-6\"", area: 1850, facing: 'South', roadWidth: "16' wide road" },
+  8: { dimensions: "80' x 156'-5\"", area: 1900, facing: 'South', roadWidth: "16' wide road" },
+  9: { dimensions: "80' x 156'-5\" x 45'-4\"", area: 1920, facing: 'South', roadWidth: "16' wide road" },
+  10: { dimensions: "80' x 138'-1\" x 41'-9\"", area: 1880, facing: 'South', roadWidth: "16' wide road" },
+  11: { dimensions: "80' x 105'-9\" x 85'-1\"", area: 1820, facing: 'South', roadWidth: "16' wide road" },
+  12: { dimensions: "160' x 100'-2\" x 76'-9\"", area: 1900, facing: 'South', roadWidth: "16' wide road" },
+  13: { dimensions: "160' x 110'-3\" x 22'-7\"", area: 1860, facing: 'South', roadWidth: "16' wide road" },
+  14: { dimensions: "160' x 91'-10\" x 28'-11\"", area: 1840, facing: 'South', roadWidth: "16' wide road" },
+  15: { dimensions: "180' x 86'-7\" x 51'-8\"", area: 1890, facing: 'South', roadWidth: "16' wide road" },
+
+  // Splayed River Boundary Plots (132 & 133)
+  132: { dimensions: "129'-7\" x 157'-7\" (River) x 89'-8\"", area: 1720, facing: 'South', roadWidth: "20' wide road" },
+  133: { dimensions: "116'-1\" x 70'-8\" (River) x 31'-6\"", area: 1650, facing: 'South', roadWidth: "20' wide road" },
+
+  // Southern Riverfront (153 to 169) - Following SURAMRIVER contour
+  153: { dimensions: "100' x 186'-11\" x 68'-1\"", area: 1780, facing: 'North', roadWidth: "20' wide road" },
+  154: { dimensions: "80' x 76'-3\"", area: 1520, facing: 'North', roadWidth: "20' wide road" },
+  155: { dimensions: "80' x 91'-11\" x 80'-3\"", area: 1560, facing: 'North', roadWidth: "20' wide road" },
+  156: { dimensions: "80' x 113'-11\" x 83'", area: 1600, facing: 'North', roadWidth: "20' wide road" },
+  157: { dimensions: "80' x 135'-7\" x 82'-11\"", area: 1680, facing: 'North', roadWidth: "20' wide road" },
+  158: { dimensions: "80' x 157'-4\" x 82'-11\"", area: 1740, facing: 'North', roadWidth: "20' wide road" },
+  159: { dimensions: "80' x 34'-8\" x 83'-4\"", area: 1620, facing: 'North', roadWidth: "20' wide road" },
+  160: { dimensions: "80' x 44'-3\" x 97'", area: 1580, facing: 'North', roadWidth: "20' wide road" },
+  161: { dimensions: "80' x 80'-6\"", area: 1540, facing: 'North', roadWidth: "20' wide road" },
+  162: { dimensions: "80' x 80'-6\"", area: 1540, facing: 'North', roadWidth: "20' wide road" },
+  163: { dimensions: "80' x 74'-3\" x 63'-7\"", area: 1500, facing: 'North', roadWidth: "20' wide road" },
+  164: { dimensions: "80' x 61'-9\" x 45'-10\"", area: 1480, facing: 'North', roadWidth: "20' wide road" },
+  165: { dimensions: "160' x 87'-2\" x 45'-10\"", area: 1820, facing: 'North', roadWidth: "20' wide road" },
+  166: { dimensions: "160' x 160'-1\"", area: 1950, facing: 'North', roadWidth: "20' wide road" },
+  167: { dimensions: "80' x 80'-1\" x 54'-7\"", area: 1520, facing: 'North', roadWidth: "20' wide road" },
+  168: { dimensions: "80' x 80'-1\" x 57'-6\"", area: 1520, facing: 'North', roadWidth: "20' wide road" },
+  169: { dimensions: "162'-6\" x 118'-9\" x 53'-11\"", area: 1880, facing: 'North', roadWidth: "20' wide road" },
+
+  // West Wing Tail (170 to 173)
+  170: { dimensions: "91'-4\" x 80'-7\"", area: 1620, facing: 'East', roadWidth: "20' wide road" },
+  171: { dimensions: "89'-1\" x 89'-3\"", area: 1600, facing: 'East', roadWidth: "20' wide road" },
+  172: { dimensions: "120' x 120'-2\"", area: 1750, facing: 'East', roadWidth: "20' wide road" },
+  173: { dimensions: "120' x 108'-11\"", area: 1720, facing: 'East', roadWidth: "20' wide road" },
+
+  // West Wing Vertical Stack (174 to 182)
+  174: { dimensions: "106'-9\" x 85'", area: 1560, facing: 'East', roadWidth: "16' wide road" },
+  175: { dimensions: "108'-1\" x 80'", area: 1540, facing: 'East', roadWidth: "16' wide road" },
+  176: { dimensions: "109'-4\" x 80'", area: 1550, facing: 'East', roadWidth: "16' wide road" },
+  177: { dimensions: "110'-8\" x 80'", area: 1570, facing: 'East', roadWidth: "16' wide road" },
+  178: { dimensions: "111'-11\" x 80'", area: 1590, facing: 'East', roadWidth: "16' wide road" },
+  179: { dimensions: "113'-1\" x 80'", area: 1610, facing: 'East', roadWidth: "16' wide road" },
+  180: { dimensions: "114' x 76'-9\"", area: 1620, facing: 'East', roadWidth: "16' wide road" },
+  181: { dimensions: "114'-10\" x 166'-6\"", area: 1840, facing: 'East', roadWidth: "16' wide road" },
+  182: { dimensions: "166'-6\" x 97'-5\"", area: 2100, facing: 'East', roadWidth: "16' wide road" },
+
+  // East Wing (183 & 184)
+  183: { dimensions: "168'-9\" x 82'-3\" x 120'-9\" x 54'-4\"", area: 2350, facing: 'West', roadWidth: "30' wide road" },
+  184: { dimensions: "73'-5\" x 68' (Village Road) x 32'-1\" x 17'-9\"", area: 1850, facing: 'West', roadWidth: "Village Road" },
+};
+
 // Generate the 184 plots dataset matching the client's master plan blueprint
 export function generateTownshipPlots(): Plot[] {
   const plots: Plot[] = [];
@@ -41,55 +105,12 @@ export function generateTownshipPlots(): Plot[] {
       status = 'token_booked';
     }
 
-    // Specific dimensions & areas based on blueprint sectors
-    let area = 1500;
-    let dimensions = '30x50';
-    let facing: PlotFacing = 'North';
-    let roadWidth = '20 ft';
-
-    if (i <= 15) {
-      // Northern River/Irregular plots
-      area = 1800 + (i % 5) * 120;
-      dimensions = `${30 + (i % 6) * 5}x${50 + (i % 4) * 5}`;
-      facing = 'South';
-      roadWidth = '16 ft';
-    } else if (i >= 16 && i <= 63) {
-      // Upper block
-      area = i % 3 === 0 ? 1800 : 1500;
-      dimensions = i % 3 === 0 ? '30x60' : '30x50';
-      facing = i <= 27 || (i >= 28 && i <= 40) ? 'North' : 'South';
-      roadWidth = i <= 40 ? '16 ft' : '20 ft';
-    } else if (i >= 64 && i <= 110) {
-      // Middle block
-      area = 1500;
-      dimensions = '30x50';
-      facing = i <= 87 ? 'North' : 'South';
-      roadWidth = '20 ft';
-    } else if (i >= 111 && i <= 152) {
-      // Lower block
-      area = i % 4 === 0 ? 2000 : 1500;
-      dimensions = i % 4 === 0 ? '40x50' : '30x50';
-      facing = i <= 132 ? 'North' : 'South';
-      roadWidth = '20 ft';
-    } else if (i >= 153 && i <= 169) {
-      // Southern River boundary
-      area = 1400 + (i % 4) * 150;
-      dimensions = '30x48 (Irregular)';
-      facing = 'North';
-      roadWidth = '20 ft';
-    } else if (i >= 170 && i <= 182) {
-      // West Wing
-      area = 1600;
-      dimensions = '32x50';
-      facing = 'East';
-      roadWidth = '20 ft';
-    } else {
-      // 183, 184 Entry plots
-      area = 2400;
-      dimensions = '40x60';
-      facing = 'West';
-      roadWidth = '30 ft';
-    }
+    // Lookup custom survey specs if present, otherwise default to standard CAD 30x50 block
+    const customSpec = cadSurveyDimensions[i];
+    const area = customSpec?.area || (i % 3 === 0 ? 1800 : 1500);
+    const dimensions = customSpec?.dimensions || '30x50';
+    const facing: PlotFacing = customSpec?.facing || (i <= 40 ? 'North' : i <= 87 ? 'South' : i <= 132 ? 'North' : 'South');
+    const roadWidth = customSpec?.roadWidth || '20 ft';
 
     const pricePerSqft = 2500;
     const totalPrice = area * pricePerSqft;
@@ -99,7 +120,7 @@ export function generateTownshipPlots(): Plot[] {
       id: `plot-t${String(i).padStart(3, '0')}`,
       plotNumber,
       projectId: 'proj-001',
-      projectName: 'Green Valley Township (184 Plots)',
+      projectName: 'SCP Farm Layout (184 Plots)',
       location: 'Main Highway Layout, Hyderabad',
       area,
       dimensions,
