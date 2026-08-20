@@ -22,14 +22,11 @@ const routeLabels: Record<string, string[]> = {
   '/admin/notifications': ['Admin', 'Notifications'],
   '/admin/audit-logs': ['Admin', 'Audit Logs'],
   '/admin/settings': ['Admin', 'Settings'],
-  '/admin/demo': ['Admin', 'Demo Controls'],
   '/channel/dashboard': ['Channel Partner', 'Dashboard'],
   '/channel/projects': ['Channel Partner', 'Projects'],
   '/channel/plots': ['Channel Partner', 'Available Plots'],
-  '/channel/customers': ['Channel Partner', 'My Customers'],
   '/channel/bookings': ['Channel Partner', 'My Bookings'],
   '/channel/payments': ['Channel Partner', 'Payments'],
-  '/channel/commission': ['Channel Partner', 'Commission'],
   '/channel/documents': ['Channel Partner', 'Documents'],
   '/channel/profile': ['Channel Partner', 'Profile'],
   '/customer/dashboard': ['Customer', 'Dashboard'],
@@ -38,7 +35,6 @@ const routeLabels: Record<string, string[]> = {
   '/customer/bookings': ['Customer', 'My Bookings'],
   '/customer/payments': ['Customer', 'Payments'],
   '/customer/documents': ['Customer', 'Documents'],
-  '/customer/notifications': ['Customer', 'Notifications'],
   '/customer/profile': ['Customer', 'Profile'],
 };
 

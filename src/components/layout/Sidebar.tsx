@@ -30,17 +30,14 @@ const adminNav: NavItem[] = [
   { label: 'Notifications', icon: Bell, to: '/admin/notifications' },
   { label: 'Audit Logs', icon: ClipboardList, to: '/admin/audit-logs' },
   { label: 'Settings', icon: Settings, to: '/admin/settings' },
-  { label: 'Demo Controls', icon: Zap, to: '/admin/demo' },
 ];
 
 const channelNav: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/channel/dashboard' },
   { label: 'Projects', icon: Building2, to: '/channel/projects' },
   { label: 'Available Plots', icon: Map, to: '/channel/plots' },
-  { label: 'My Customers', icon: Users, to: '/channel/customers' },
   { label: 'My Bookings', icon: BookOpen, to: '/channel/bookings' },
   { label: 'Payments', icon: CreditCard, to: '/channel/payments' },
-  { label: 'Commission', icon: Award, to: '/channel/commission' },
   { label: 'Documents', icon: FolderOpen, to: '/channel/documents' },
   { label: 'Profile', icon: UserCircle, to: '/channel/profile' },
 ];
@@ -52,7 +49,6 @@ const customerNav: NavItem[] = [
   { label: 'My Bookings', icon: BookOpen, to: '/customer/bookings' },
   { label: 'Payments', icon: DollarSign, to: '/customer/payments' },
   { label: 'Documents', icon: FolderOpen, to: '/customer/documents' },
-  { label: 'Notifications', icon: Bell, to: '/customer/notifications' },
   { label: 'Profile', icon: UserCircle, to: '/customer/profile' },
 ];
 

@@ -23,7 +23,6 @@ import { AdminProjects } from './pages/admin/Projects';
 import { AdminNotifications } from './pages/admin/Notifications';
 import { AuditLogs } from './pages/admin/AuditLogs';
 import { AdminSettings } from './pages/admin/Settings';
-import { DemoControls } from './pages/admin/DemoControls';
 import { AdminReports } from './pages/admin/Reports';
 import { AdminDocuments } from './pages/admin/Documents';
 
@@ -98,7 +97,6 @@ function App() {
           <Route path="notifications" element={<AdminNotifications />} />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="settings" element={<AdminSettings />} />
-          <Route path="demo" element={<DemoControls />} />
         </Route>
 
         {/* Channel Partner Routes */}
@@ -111,10 +109,8 @@ function App() {
           <Route path="dashboard" element={<ChannelDashboard />} />
           <Route path="projects" element={<ChannelProjects />} />
           <Route path="plots" element={<ChannelPlots />} />
-          <Route path="customers" element={<ChannelCustomers />} />
           <Route path="bookings" element={<ChannelBookings />} />
           <Route path="payments" element={<ChannelPayments />} />
-          <Route path="commission" element={<ChannelCommission />} />
           <Route path="documents" element={<ChannelDocuments />} />
           <Route path="profile" element={<ChannelProfile />} />
         </Route>
@@ -132,7 +128,6 @@ function App() {
           <Route path="bookings" element={<CustomerBookings />} />
           <Route path="payments" element={<CustomerPayments />} />
           <Route path="documents" element={<CustomerDocuments />} />
-          <Route path="notifications" element={<CustomerNotifications />} />
           <Route path="profile" element={<CustomerProfile />} />
         </Route>
 

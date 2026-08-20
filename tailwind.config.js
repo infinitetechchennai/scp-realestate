@@ -30,6 +30,9 @@ export default {
           textActive: '#ffffff',
         }
       },
+      fontFamily: {
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+      },
     },
   },
   plugins: [],
