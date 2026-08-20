@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f8fafc;
+    color: #0f172a;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: #0c0f17;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #1e2638;
+  border-radius: 2px;
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Plot Card Styles */
+.plot-card {
+  transition: all 0.18s ease;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.plot-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.plot-available {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  color: #15803d;
+}
+.plot-available:hover {
+  border-color: #22c55e;
+  background: #dcfce7;
+}
+
+.plot-token {
+  background: #fff7ed;
+  border: 1.5px solid #fdba74;
+  color: #c2410c;
+}
+.plot-token:hover {
+  border-color: #f97316;
+  background: #ffedd5;
+}
+
+.plot-confirmed {
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #b91c1c;
+}
+.plot-confirmed:hover {
+  border-color: #ef4444;
+  background: #fee2e2;
+}
+
+.plot-sold {
+  background: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  color: #475569;
+}
+.plot-sold:hover {
+  border-color: #94a3b8;
+  background: #e2e8f0;
+}
+
+/* Drawer overlay */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 45;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Table row hover */
+.table-row-hover:hover {
+  background-color: #f8fafc;
+}
