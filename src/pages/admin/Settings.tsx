@@ -34,13 +34,13 @@ export const AdminSettings: React.FC = () => {
         {tab === 'general' && (
           <div className="space-y-5 animate-fade-in">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Building size={18} className="text-amber-600" />
+              <Building size={18} className="text-blue-600" />
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Company Information</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { key: 'companyName', label: 'Company Name', placeholder: 'GVE Realty Pvt. Ltd.' },
-                { key: 'companyEmail', label: 'Official Email', placeholder: 'info@gverealty.com' },
+                { key: 'companyName', label: 'Company Name', placeholder: 'Seven Circle Property Developers' },
+                { key: 'companyEmail', label: 'Official Email', placeholder: 'info@sevencircle.com' },
                 { key: 'companyPhone', label: 'Official Phone', placeholder: '+91 98765 43210' },
               ].map(f => (
                 <div key={f.key} className={f.key === 'companyName' ? 'md:col-span-2' : ''}>
@@ -49,7 +49,7 @@ export const AdminSettings: React.FC = () => {
                     type="text"
                     value={local[f.key as keyof typeof local] as string}
                     onChange={e => setLocal(l => ({ ...l, [f.key]: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:border-amber-400 outline-none transition-colors"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-800 focus:border-sky-500 outline-none transition-colors"
                     placeholder={f.placeholder}
                   />
                 </div>
@@ -61,7 +61,7 @@ export const AdminSettings: React.FC = () => {
         {tab === 'booking' && (
           <div className="space-y-5 animate-fade-in">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Clock size={18} className="text-amber-600" />
+              <Clock size={18} className="text-blue-600" />
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Booking Duration Rules</h3>
             </div>
             
@@ -94,7 +94,7 @@ export const AdminSettings: React.FC = () => {
                   type="number"
                   value={local.defaultTokenAmount}
                   onChange={e => setLocal(l => ({ ...l, defaultTokenAmount: parseInt(e.target.value) || 20000 }))}
-                  className="w-48 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 outline-none focus:border-amber-400"
+                  className="w-48 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 outline-none focus:border-sky-500"
                 />
                 <p className="text-[11px] text-slate-500 font-medium">Standard minimum token advance required to hold a plot.</p>
               </div>
@@ -105,7 +105,7 @@ export const AdminSettings: React.FC = () => {
         {tab === 'payment' && (
           <div className="space-y-5 animate-fade-in">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <CreditCard size={18} className="text-amber-600" />
+              <CreditCard size={18} className="text-blue-600" />
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Payment & Tax Configuration</h3>
             </div>
             
@@ -116,7 +116,7 @@ export const AdminSettings: React.FC = () => {
                   type="number"
                   value={local.gstRate}
                   onChange={e => setLocal(l => ({ ...l, gstRate: parseFloat(e.target.value) || 18 }))}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
                 />
               </div>
 
@@ -125,19 +125,19 @@ export const AdminSettings: React.FC = () => {
                 <select
                   value={local.currency}
                   onChange={e => setLocal(l => ({ ...l, currency: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold bg-white focus:border-amber-400 outline-none cursor-pointer"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold bg-white focus:border-sky-500 outline-none cursor-pointer"
                 >
                   <option value="INR">INR (₹ - Indian Rupee)</option>
                   <option value="USD">USD ($ - US Dollar)</option>
                 </select>
               </div>
 
-              <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-5 md:col-span-2">
-                <p className="text-xs font-bold text-amber-950 mb-3 uppercase tracking-wider">Accepted Payment Gateways & Modes</p>
+              <div className="bg-sky-50/60 border border-sky-200/80 rounded-2xl p-5 md:col-span-2">
+                <p className="text-xs font-bold text-blue-950 mb-3 uppercase tracking-wider">Accepted Payment Gateways & Modes</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {['UPI (Instant)', 'Bank Transfer / NEFT', 'Cash Collection', 'Credit / Debit Card', 'Cheque Deposit', 'Demand Draft'].map(m => (
-                    <label key={m} className="flex items-center gap-2 text-xs text-amber-950 font-semibold cursor-pointer">
-                      <input type="checkbox" defaultChecked className="rounded accent-amber-600 w-4 h-4" />
+                    <label key={m} className="flex items-center gap-2 text-xs text-blue-950 font-semibold cursor-pointer">
+                      <input type="checkbox" defaultChecked className="rounded accent-blue-600 w-4 h-4" />
                       <span>{m}</span>
                     </label>
                   ))}
@@ -150,7 +150,7 @@ export const AdminSettings: React.FC = () => {
         {tab === 'notifications' && (
           <div className="space-y-4 animate-fade-in">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Bell size={18} className="text-amber-600" />
+              <Bell size={18} className="text-blue-600" />
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Notification Preferences</h3>
             </div>
             
@@ -167,7 +167,7 @@ export const AdminSettings: React.FC = () => {
                     <p className="text-xs font-bold text-slate-800">{item.title}</p>
                     <p className="text-[11px] text-slate-400">{item.desc}</p>
                   </div>
-                  <input type="checkbox" defaultChecked className="rounded accent-amber-600 w-5 h-5 cursor-pointer" />
+                  <input type="checkbox" defaultChecked className="rounded accent-blue-600 w-5 h-5 cursor-pointer" />
                 </div>
               ))}
             </div>
@@ -178,7 +178,7 @@ export const AdminSettings: React.FC = () => {
         <div className="pt-4 border-t border-slate-100 flex justify-end">
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow-sm"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-500/20"
           >
             <Save size={15} />
             Save Settings

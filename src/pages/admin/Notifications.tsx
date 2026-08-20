@@ -26,7 +26,7 @@ export const AdminNotifications: React.FC = () => {
         </div>
         <button
           onClick={markAllRead}
-          className="text-xs text-amber-600 hover:text-amber-700 font-bold"
+          className="text-xs text-blue-600 hover:text-blue-700 font-bold"
         >
           Mark all as read
         </button>
@@ -39,17 +39,17 @@ export const AdminNotifications: React.FC = () => {
             <div
               key={n.id}
               onClick={() => markRead(n.id)}
-              className={`flex gap-4 px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${!n.isRead ? 'bg-amber-50/40' : ''}`}
+              className={`flex gap-4 px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${!n.isRead ? 'bg-blue-50/40' : ''}`}
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
-                !n.isRead ? 'bg-amber-100 border-amber-200' : 'bg-slate-100 border-slate-200'
+                !n.isRead ? 'bg-blue-100 border-blue-200' : 'bg-slate-100 border-slate-200'
               }`}>
-                <Icon size={18} className={!n.isRead ? 'text-amber-800' : 'text-slate-400'} />
+                <Icon size={18} className={!n.isRead ? 'text-blue-700' : 'text-slate-400'} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`text-xs font-bold ${!n.isRead ? 'text-slate-950 font-black' : 'text-slate-700'}`}>{n.title}</p>
-                  {!n.isRead && <div className="w-2 h-2 bg-amber-500 rounded-full mt-1 flex-shrink-0" />}
+                  {!n.isRead && <div className="w-2 h-2 bg-sky-500 rounded-full mt-1 flex-shrink-0" />}
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
                 <p className="text-[10px] text-slate-400 mt-1 font-mono">{new Date(n.createdAt).toLocaleString('en-IN')}</p>

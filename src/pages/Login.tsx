@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Eye, EyeOff, LogIn, Lock, Mail, Shield } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Lock, Mail, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { UserRole } from '../types';
 import toast from 'react-hot-toast';
 
 const DEMO_CREDENTIALS = [
-  { role: 'super_admin' as UserRole, email: 'admin@example.com', password: 'admin123', label: 'Super Admin', color: 'bg-amber-50 text-amber-900 border-amber-300' },
-  { role: 'channel_partner' as UserRole, email: 'channel@example.com', password: 'channel123', label: 'Channel Partner', color: 'bg-orange-50 text-orange-900 border-orange-300' },
-  { role: 'customer' as UserRole, email: 'customer@example.com', password: 'cust123', label: 'Customer', color: 'bg-emerald-50 text-emerald-900 border-emerald-300' },
+  { role: 'super_admin' as UserRole, email: 'admin@example.com', password: 'admin123', label: 'Super Admin', color: 'bg-blue-50 text-blue-900 border-blue-200 hover:bg-blue-100' },
+  { role: 'channel_partner' as UserRole, email: 'channel@example.com', password: 'channel123', label: 'Channel Partner', color: 'bg-sky-50 text-sky-900 border-sky-200 hover:bg-sky-100' },
+  { role: 'customer' as UserRole, email: 'customer@example.com', password: 'cust123', label: 'Customer', color: 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100' },
 ];
 
 export const LoginPage: React.FC = () => {
@@ -46,27 +46,25 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0f17] flex">
+    <div className="min-h-screen bg-[#080e1a] flex">
       {/* Left panel (Hero) */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden bg-gradient-to-br from-[#0c0f17] via-[#151a26] to-[#090b10] border-r border-[#1e2638]">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+      <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden bg-gradient-to-br from-[#080e1a] via-[#0f1d38] to-[#060a14] border-r border-[#131f37]">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-500/15 via-transparent to-transparent pointer-events-none" />
         
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-11 h-11 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-900/30">
-              <Building2 size={24} className="text-slate-950 font-black" />
-            </div>
-            <div>
-              <span className="text-white text-xl font-black tracking-wide">GVE <span className="text-amber-400">Realty</span></span>
-              <p className="text-slate-400 text-xs font-medium">Plot Booking Management</p>
+          <div className="mb-10">
+            <div className="inline-block bg-white rounded-2xl p-3 shadow-xl border border-white/20">
+              <img src="/logo.jpeg" alt="Seven Circle Property Developers" className="h-12 w-auto object-contain" />
             </div>
           </div>
 
           <h1 className="text-4xl font-black text-white leading-tight mb-4">
             Master Plan & Plot<br />
-            <span className="text-amber-400">Booking Management</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-300">
+              Booking Management
+            </span>
           </h1>
-          <p className="text-slate-400 text-base leading-relaxed max-w-md">
+          <p className="text-slate-300 text-sm leading-relaxed max-w-md">
             Manage your entire real estate plot inventory, real-time master layouts, multi-tier booking pipelines, channel partners, and transaction audit trails in one platform.
           </p>
         </div>
@@ -78,8 +76,8 @@ export const LoginPage: React.FC = () => {
             { label: 'Active Pipeline', value: '12' },
             { label: 'Portfolio Value', value: '₹15.8Cr' },
           ].map(stat => (
-            <div key={stat.label} className="bg-[#161b26] border border-[#222a3d] rounded-2xl p-4 shadow-sm">
-              <div className="text-2xl font-black text-amber-400">{stat.value}</div>
+            <div key={stat.label} className="bg-[#0e172a]/90 border border-[#1e293b] rounded-2xl p-4 shadow-sm">
+              <div className="text-2xl font-black text-sky-400">{stat.value}</div>
               <div className="text-slate-400 text-xs font-semibold mt-1">{stat.label}</div>
             </div>
           ))}
@@ -90,11 +88,10 @@ export const LoginPage: React.FC = () => {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center">
-              <Building2 size={20} className="text-slate-950" />
+          <div className="mb-8 lg:hidden">
+            <div className="inline-block bg-white border border-slate-200 rounded-xl p-2 shadow-sm">
+              <img src="/logo.jpeg" alt="Seven Circle Property Developers" className="h-10 w-auto object-contain" />
             </div>
-            <span className="text-slate-900 text-xl font-black">GVE <span className="text-amber-600">Realty</span></span>
           </div>
 
           <h2 className="text-2xl font-black text-slate-900 mb-1">Welcome back</h2>
@@ -112,8 +109,8 @@ export const LoginPage: React.FC = () => {
                     onClick={() => setRole(r)}
                     className={`py-2.5 px-2 rounded-xl border-2 text-xs font-bold transition-all ${
                       role === r
-                        ? 'border-amber-500 bg-amber-50 text-amber-950 shadow-xs'
-                        : 'border-slate-200 text-slate-600 hover:border-amber-200 hover:bg-slate-50'
+                        ? 'border-blue-600 bg-blue-50 text-blue-900 shadow-xs'
+                        : 'border-slate-200 text-slate-600 hover:border-sky-300 hover:bg-slate-50'
                     }`}
                   >
                     {r === 'super_admin' ? 'Admin' : r === 'channel_partner' ? 'Partner' : 'Customer'}
@@ -131,7 +128,7 @@ export const LoginPage: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-xs font-medium focus:border-amber-400 outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-xs font-medium focus:border-sky-500 outline-none transition-colors"
                   placeholder="your@email.com"
                   required
                 />
@@ -147,7 +144,7 @@ export const LoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl text-xs font-medium focus:border-amber-400 outline-none transition-colors"
+                  className="w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl text-xs font-medium focus:border-sky-500 outline-none transition-colors"
                   placeholder="••••••••"
                   required
                 />
@@ -161,10 +158,10 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-70 mt-2"
+              className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-500/25 disabled:opacity-70 mt-2"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   <LogIn size={16} />
@@ -177,7 +174,7 @@ export const LoginPage: React.FC = () => {
           {/* Quick Demo Credentials */}
           <div className="mt-8 p-4 bg-slate-50/80 rounded-2xl border border-slate-200">
             <div className="flex items-center gap-1.5 mb-3">
-              <Shield size={14} className="text-amber-600" />
+              <Shield size={14} className="text-blue-600" />
               <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Quick Demo Login</span>
             </div>
             <div className="space-y-2">

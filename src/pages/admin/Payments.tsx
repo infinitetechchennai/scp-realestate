@@ -22,18 +22,18 @@ export const AdminPayments: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">Payments & Collections</h1>
+        <h1 className="text-2xl font-black text-slate-900">Collections & Payments</h1>
         <p className="text-slate-500 text-xs font-medium mt-0.5">Audit trail of all token advances, installments, full payments, and registration fees</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <DashboardCard title="Total Collection" value={formatCurrency(total)} icon={DollarSign} iconColor="text-emerald-600" />
-        <DashboardCard title="Today's Collection" value={formatCurrency(today)} icon={TrendingUp} iconColor="text-amber-600" />
+        <DashboardCard title="Today's Collection" value={formatCurrency(today)} icon={TrendingUp} iconColor="text-blue-600" />
         <DashboardCard title="Token Advances" value={formatCurrency(tokenColl)} icon={Clock} iconColor="text-orange-500" />
-        <DashboardCard title="Full Settlements" value={formatCurrency(fullPayColl)} icon={CreditCard} iconColor="text-emerald-700" />
+        <DashboardCard title="Full Settlements" value={formatCurrency(fullPayColl)} icon={CreditCard} iconColor="text-sky-600" />
       </div>
 
-      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-amber-400">
+      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-sky-500">
         <Search size={15} className="text-slate-400" />
         <input
           value={search}
@@ -61,7 +61,7 @@ export const AdminPayments: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {filtered.map(p => (
                 <tr key={p.id} className="table-row-hover">
-                  <td className="px-6 py-3.5 font-mono text-xs font-bold text-amber-700">{p.id}</td>
+                  <td className="px-6 py-3.5 font-mono text-xs font-bold text-blue-700">{p.id}</td>
                   <td className="px-4 py-3.5 font-bold text-slate-900">{p.customerName}</td>
                   <td className="px-4 py-3.5 font-black text-slate-800">{p.plotNumber || '—'}</td>
                   <td className="px-4 py-3.5">

@@ -58,23 +58,23 @@ export const AdminDashboard: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-black text-slate-900">Admin Dashboard</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Green Valley Enclave — Overview & Real-Time Analytics</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Seven Circle Property Developers — Real-Time Analytics & Master Inventory</p>
       </div>
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <DashboardCard title="Total Plots" value={plots.length} icon={Map} iconColor="text-amber-600" subtitle="Across all master plans" />
+        <DashboardCard title="Total Plots" value={plots.length} icon={Map} iconColor="text-blue-600" subtitle="Across all master plans" />
         <DashboardCard title="Available" value={available} icon={CheckCircle} iconColor="text-emerald-600" subtitle="Ready for booking" onClick={() => navigate('/admin/plots')} />
         <DashboardCard title="Token Booked" value={tokenBooked} icon={AlertCircle} iconColor="text-orange-500" subtitle="7-day hold" onClick={() => navigate('/admin/bookings')} />
         <DashboardCard title="Confirmed" value={confirmed} icon={Activity} iconColor="text-red-600" subtitle="90-day balance deadline" onClick={() => navigate('/admin/bookings')} />
         <DashboardCard title="Sold Out" value={sold} icon={XCircle} iconColor="text-slate-600" subtitle="Deeds executed" />
-        <DashboardCard title="Total Customers" value={customers.length} icon={Users} iconColor="text-stone-700" onClick={() => navigate('/admin/customers')} />
-        <DashboardCard title="Active Partners" value={activePartners} icon={Handshake} iconColor="text-amber-700" onClick={() => navigate('/admin/channel-partners')} />
+        <DashboardCard title="Total Customers" value={customers.length} icon={Users} iconColor="text-blue-700" onClick={() => navigate('/admin/customers')} />
+        <DashboardCard title="Active Partners" value={activePartners} icon={Handshake} iconColor="text-sky-600" onClick={() => navigate('/admin/channel-partners')} />
         <DashboardCard title="Total Collection" value={formatCurrency(totalCollection)} icon={DollarSign} iconColor="text-emerald-600" subtitle="Cumulative payments" />
-        <DashboardCard title="Booking Value" value={formatCurrency(totalBookingValue)} icon={TrendingUp} iconColor="text-amber-600" subtitle="Active pipeline" />
+        <DashboardCard title="Booking Value" value={formatCurrency(totalBookingValue)} icon={TrendingUp} iconColor="text-blue-600" subtitle="Active pipeline" />
         <DashboardCard title="Token Collection" value={formatCurrency(tokenCollection)} icon={CreditCard} iconColor="text-orange-500" />
         <DashboardCard title="Pending Balance" value={formatCurrency(pendingCollection)} icon={AlertCircle} iconColor="text-red-500" subtitle="Due from confirmed" />
-        <DashboardCard title="Active Projects" value={2} icon={Building2} iconColor="text-emerald-700" onClick={() => navigate('/admin/projects')} />
+        <DashboardCard title="Active Projects" value={2} icon={Building2} iconColor="text-sky-700" onClick={() => navigate('/admin/projects')} />
       </div>
 
       {/* Charts Row 1 */}
@@ -111,7 +111,7 @@ export const AdminDashboard: React.FC = () => {
               <Tooltip formatter={(v: number) => [`₹${(v / 100000).toFixed(2)}L`, '']} />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
               <Bar dataKey="token" name="Token Advance" fill="#ea580c" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="booking" name="Booking Confirmation" fill="#d97706" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="booking" name="Booking Confirmation" fill="#0284c7" radius={[4, 4, 0, 0]} />
               <Bar dataKey="final" name="Final Settlement" fill="#059669" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -130,7 +130,7 @@ export const AdminDashboard: React.FC = () => {
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-              <Line type="monotone" dataKey="bookings" name="Bookings" stroke="#d97706" strokeWidth={2.5} dot={{ r: 4, fill: '#d97706' }} />
+              <Line type="monotone" dataKey="bookings" name="Bookings" stroke="#0284c7" strokeWidth={2.5} dot={{ r: 4, fill: '#0284c7' }} />
               <Line type="monotone" dataKey="confirmations" name="Confirmed" stroke="#dc2626" strokeWidth={2.5} dot={{ r: 4, fill: '#dc2626' }} />
               <Line type="monotone" dataKey="sold" name="Sold" stroke="#64748b" strokeWidth={2.5} dot={{ r: 4, fill: '#64748b' }} />
             </LineChart>
@@ -171,29 +171,29 @@ export const AdminDashboard: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Recent Booking Transactions</h3>
-          <button onClick={() => navigate('/admin/bookings')} className="text-xs text-amber-600 hover:text-amber-700 font-bold">View All Bookings →</button>
+          <button onClick={() => navigate('/admin/bookings')} className="text-xs text-blue-600 hover:text-blue-700 font-bold">View All Bookings →</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-                <th className="text-left px-6 py-3">Booking ID</th>
-                <th className="text-left px-4 py-3">Plot Number</th>
-                <th className="text-left px-4 py-3">Customer</th>
-                <th className="text-left px-4 py-3">Channel Partner</th>
-                <th className="text-right px-4 py-3">Amount Paid</th>
-                <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-6 py-3.5">Booking ID</th>
+                <th className="text-left px-4 py-3.5">Plot Number</th>
+                <th className="text-left px-4 py-3.5">Customer</th>
+                <th className="text-left px-4 py-3.5">Channel Partner</th>
+                <th className="text-right px-4 py-3.5">Amount Paid</th>
+                <th className="text-left px-4 py-3.5">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {bookings.slice(0, 6).map(b => (
                 <tr key={b.id} className="table-row-hover">
-                  <td className="px-6 py-3 font-mono text-xs font-bold text-amber-700">{b.id}</td>
-                  <td className="px-4 py-3 font-black text-slate-900">{b.plotNumber}</td>
-                  <td className="px-4 py-3 text-slate-700 font-medium">{b.customerName}</td>
-                  <td className="px-4 py-3 text-slate-500">{b.channelPartnerName || 'Direct'}</td>
-                  <td className="px-4 py-3 text-right font-black text-emerald-700">₹{b.amountPaid.toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-3.5 font-mono text-xs font-bold text-blue-700">{b.id}</td>
+                  <td className="px-4 py-3.5 font-black text-slate-900">{b.plotNumber}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customerName}</td>
+                  <td className="px-4 py-3.5 text-slate-500">{b.channelPartnerName || 'Direct'}</td>
+                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">₹{b.amountPaid.toLocaleString('en-IN')}</td>
+                  <td className="px-4 py-3.5">
                     <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
                       b.status === 'token_paid' ? 'text-orange-700 bg-orange-50 border-orange-200' :
                       b.status === 'confirmed' ? 'text-red-700 bg-red-50 border-red-200' :

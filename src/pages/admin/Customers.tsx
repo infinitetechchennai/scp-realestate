@@ -41,19 +41,19 @@ export const AdminCustomers: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Customers</h1>
+          <h1 className="text-2xl font-black text-slate-900">Customers Directory</h1>
           <p className="text-slate-500 text-xs font-medium mt-0.5">{customers.length} registered buyers and active leads</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-500/20"
         >
           <UserPlus size={16} />
           Create Customer
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-amber-400">
+      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-sky-500">
         <Search size={15} className="text-slate-400" />
         <input
           value={search}
@@ -82,7 +82,7 @@ export const AdminCustomers: React.FC = () => {
                 <tr key={c.id} className="table-row-hover">
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center text-amber-900 font-black text-xs">
+                      <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center text-blue-900 font-black text-xs">
                         {c.name.charAt(0)}
                       </div>
                       <div>
@@ -125,7 +125,7 @@ export const AdminCustomers: React.FC = () => {
                   value={form[field.key as keyof typeof form]}
                   onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
                   placeholder={field.placeholder}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
                 />
               </div>
             ))}
@@ -134,14 +134,14 @@ export const AdminCustomers: React.FC = () => {
               <textarea
                 value={form.address}
                 onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none h-18 resize-none"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none h-18 resize-none"
                 placeholder="Full address"
               />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50">Cancel</button>
-            <button onClick={handleCreate} className="px-5 py-2.5 text-xs text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl font-black uppercase tracking-wider shadow-sm">Save Customer</button>
+            <button onClick={handleCreate} className="px-5 py-2.5 text-xs text-white bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 rounded-xl font-black uppercase tracking-wider shadow-sm">Save Customer</button>
           </div>
         </div>
       </Modal>

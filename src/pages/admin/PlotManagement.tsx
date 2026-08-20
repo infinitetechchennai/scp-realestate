@@ -3,12 +3,12 @@ import { usePlotStore } from '../../store/plotStore';
 import { StatusBadge, ConfirmationModal, Tabs } from '../../components/ui/UIComponents';
 import { Plot } from '../../types';
 import { PlotDetailsDrawer } from '../../components/plots/PlotDetailsDrawer';
-import { Search, Eye, CheckCircle } from 'lucide-react';
+import { Search, Eye } from 'lucide-react';
 import { formatCurrencyFull } from '../../utils/helpers';
 import toast from 'react-hot-toast';
 
 export const PlotManagement: React.FC = () => {
-  const { plots, markAsSold, releaseTokenExpired, releaseConfirmedExpired } = usePlotStore();
+  const { plots, markAsSold, releaseTokenExpired } = usePlotStore();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('all');
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
@@ -43,7 +43,7 @@ export const PlotManagement: React.FC = () => {
 
       {/* Search Input */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 flex-1 max-w-sm shadow-2xs focus-within:border-amber-400">
+        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 flex-1 max-w-sm shadow-2xs focus-within:border-sky-500">
           <Search size={15} className="text-slate-400" />
           <input
             value={search}
@@ -84,7 +84,7 @@ export const PlotManagement: React.FC = () => {
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => setSelectedPlot(plot)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-700 hover:bg-blue-50 transition-colors"
                         title="View Full Details"
                       >
                         <Eye size={15} />

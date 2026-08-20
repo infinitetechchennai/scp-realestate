@@ -217,11 +217,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                 <React.Fragment key={s.id}>
                   <div className={cn(
                     'flex items-center gap-1.5 text-xs font-bold transition-colors',
-                    step === s.id ? 'text-amber-800' : step > s.id ? 'text-emerald-700' : 'text-slate-400'
+                    step === s.id ? 'text-blue-700' : step > s.id ? 'text-emerald-700' : 'text-slate-400'
                   )}>
                     <div className={cn(
                       'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2',
-                      step === s.id ? 'bg-amber-500 border-amber-500 text-slate-950' :
+                      step === s.id ? 'bg-gradient-to-r from-blue-600 to-sky-500 border-blue-600 text-white' :
                       step > s.id ? 'bg-emerald-500 border-emerald-500 text-white' :
                       'bg-white border-slate-300 text-slate-400'
                     )}>
@@ -246,32 +246,32 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                 <div className="col-span-2">
                   <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
                   <input value={customerForm.name} onChange={e => setCustomerForm(f => ({ ...f, name: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="Enter full name" />
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="Enter full name" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Number *</label>
                   <input value={customerForm.mobile} onChange={e => setCustomerForm(f => ({ ...f, mobile: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="10-digit mobile" />
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="10-digit mobile" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Email *</label>
                   <input value={customerForm.email} onChange={e => setCustomerForm(f => ({ ...f, email: e.target.value }))}
-                    type="email" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="email@example.com" />
+                    type="email" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="email@example.com" />
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-bold text-slate-700 block mb-1">Address</label>
                   <textarea value={customerForm.address} onChange={e => setCustomerForm(f => ({ ...f, address: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none h-18 resize-none" placeholder="Full address" />
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none h-18 resize-none" placeholder="Full address" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Aadhar Number</label>
                   <input value={customerForm.aadhar} onChange={e => setCustomerForm(f => ({ ...f, aadhar: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="XXXX XXXX XXXX" />
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="XXXX XXXX XXXX" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">PAN Number</label>
                   <input value={customerForm.pan} onChange={e => setCustomerForm(f => ({ ...f, pan: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="ABCDE1234F" />
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="ABCDE1234F" />
                 </div>
               </div>
             </div>
@@ -281,10 +281,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
           {step === 2 && (
             <div className="space-y-4 animate-fade-in">
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Selected Plot Details</h3>
-              <div className="bg-gradient-to-br from-amber-50/80 to-orange-50/60 border border-amber-200 rounded-2xl p-5 space-y-3 shadow-2xs">
+              <div className="bg-gradient-to-br from-blue-50/80 to-sky-50/60 border border-sky-200 rounded-2xl p-5 space-y-3 shadow-2xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-black text-amber-950">{plot.plotNumber}</span>
-                  <span className="bg-amber-500 text-slate-950 text-xs px-3 py-1 rounded-full font-black">{plot.projectName}</span>
+                  <span className="text-lg font-black text-blue-950">{plot.plotNumber}</span>
+                  <span className="bg-gradient-to-r from-blue-600 to-sky-500 text-white text-xs px-3 py-1 rounded-full font-black">{plot.projectName}</span>
                 </div>
                 {[
                   { label: 'Location', value: plot.location },
@@ -293,14 +293,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                   { label: 'Road Width', value: plot.roadWidth },
                   { label: 'Price/sq.ft', value: `₹${plot.pricePerSqft.toLocaleString('en-IN')}` },
                 ].map(item => (
-                  <div key={item.label} className="flex justify-between py-2 border-b border-amber-100/80">
-                    <span className="text-xs font-semibold text-amber-800">{item.label}</span>
+                  <div key={item.label} className="flex justify-between py-2 border-b border-sky-100">
+                    <span className="text-xs font-semibold text-blue-800">{item.label}</span>
                     <span className="text-xs font-bold text-slate-800">{item.value}</span>
                   </div>
                 ))}
                 <div className="flex justify-between pt-1">
-                  <span className="text-sm font-black text-amber-950 uppercase tracking-wider">Total Price</span>
-                  <span className="text-xl font-black text-amber-950">{formatCurrencyFull(plot.totalPrice)}</span>
+                  <span className="text-sm font-black text-blue-950 uppercase tracking-wider">Total Price</span>
+                  <span className="text-xl font-black text-blue-900">{formatCurrencyFull(plot.totalPrice)}</span>
                 </div>
               </div>
             </div>
@@ -318,10 +318,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                 ].map(opt => (
                   <label key={opt.id} className={cn(
                     'flex gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all',
-                    paymentOption === opt.id ? 'border-amber-500 bg-amber-50/50' : 'border-slate-200 hover:border-amber-200'
+                    paymentOption === opt.id ? 'border-sky-500 bg-sky-50/50' : 'border-slate-200 hover:border-sky-200'
                   )}>
                     <input type="radio" name="payment" value={opt.id} checked={paymentOption === opt.id}
-                      onChange={() => setPaymentOption(opt.id as PaymentOption)} className="mt-0.5 accent-amber-600" />
+                      onChange={() => setPaymentOption(opt.id as PaymentOption)} className="mt-0.5 accent-blue-600" />
                     <div>
                       <div className="text-xs font-bold text-slate-900">{opt.label}</div>
                       <div className="text-[11px] text-slate-500 mt-0.5">{opt.desc}</div>
@@ -339,7 +339,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                         type="button"
                         onClick={() => setTokenAmount(amt)}
                         className={cn('py-2.5 border-2 rounded-xl text-xs font-bold transition-all',
-                          tokenAmount === amt ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-slate-200 text-slate-700 hover:border-amber-200'
+                          tokenAmount === amt ? 'border-blue-600 bg-blue-50 text-blue-900 font-black' : 'border-slate-200 text-slate-700 hover:border-sky-200'
                         )}
                       >
                         ₹{(amt / 1000).toFixed(0)}K
@@ -350,7 +350,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                     <label className="text-[11px] text-slate-500 font-bold block mb-1">Custom Token Amount</label>
                     <input type="number" value={customToken}
                       onChange={e => { setCustomToken(e.target.value); setTokenAmount(parseFloat(e.target.value) || 0); }}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="Enter custom amount" />
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="Enter custom amount" />
                   </div>
                 </div>
               )}
@@ -360,7 +360,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                   <label className="text-xs text-slate-700 font-bold block mb-1">Amount to Pay *</label>
                   <input type="number" value={continueAmount}
                     onChange={e => setContinueAmount(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
                     placeholder={`Enter amount (max ₹${plot.totalPrice.toLocaleString('en-IN')})`} />
                 </div>
               )}
@@ -390,7 +390,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                 ].map(item => (
                   <div key={item.label} className={cn('flex justify-between py-2', item.highlight ? 'border-t border-b border-slate-200 bg-white px-3 rounded-lg' : 'border-b border-slate-100')}>
                     <span className="text-xs text-slate-500 font-medium">{item.label}</span>
-                    <span className={cn('text-xs font-bold', item.highlight ? 'text-amber-700 text-sm font-black' : 'text-slate-800')}>{item.value}</span>
+                    <span className={cn('text-xs font-bold', item.highlight ? 'text-blue-700 text-sm font-black' : 'text-slate-800')}>{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -404,7 +404,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                       onClick={() => setPaymentMethod(method)}
                       className={cn(
                         'py-2 px-3 border-2 rounded-xl text-xs font-bold capitalize transition-all',
-                        paymentMethod === method ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-slate-200 text-slate-600 hover:border-amber-200'
+                        paymentMethod === method ? 'border-blue-600 bg-blue-50 text-blue-900 font-black' : 'border-slate-200 text-slate-600 hover:border-sky-200'
                       )}
                     >
                       {method.replace('_', ' ')}
@@ -468,7 +468,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                 disabled={!canNext()}
                 className={cn(
                   'flex items-center gap-1.5 px-5 py-2 text-xs font-black rounded-xl transition-colors shadow-sm uppercase tracking-wider',
-                  canNext() ? 'bg-amber-500 hover:bg-amber-600 text-slate-950' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  canNext() ? 'bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 )}
               >
                 Next

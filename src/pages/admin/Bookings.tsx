@@ -32,7 +32,7 @@ export const AdminBookings: React.FC = () => {
 
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
-      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-amber-400">
+      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-sky-500">
         <Search size={15} className="text-slate-400" />
         <input
           value={search}
@@ -61,7 +61,7 @@ export const AdminBookings: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {filtered.map(b => (
                 <tr key={b.id} className="table-row-hover">
-                  <td className="px-6 py-3.5 font-mono text-xs font-bold text-amber-700">{b.id}</td>
+                  <td className="px-6 py-3.5 font-mono text-xs font-bold text-blue-700">{b.id}</td>
                   <td className="px-4 py-3.5 font-black text-slate-900">{b.plotNumber}</td>
                   <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customerName}</td>
                   <td className="px-4 py-3.5 text-slate-500">{b.channelPartnerName || 'Direct'}</td>

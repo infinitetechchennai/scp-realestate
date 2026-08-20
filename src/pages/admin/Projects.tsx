@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { mockProjects } from '../../data/mockData';
 import { Modal } from '../../components/ui/UIComponents';
-import { Building2, Plus, Eye, Map, Upload } from 'lucide-react';
+import { Plus, Eye, Map, Upload } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -24,12 +24,12 @@ export const AdminProjects: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Projects</h1>
-          <p className="text-slate-500 text-xs font-medium">{projects.length} Active Real Estate Townships & Layouts</p>
+          <h1 className="text-2xl font-black text-slate-900">Township Projects</h1>
+          <p className="text-slate-500 text-xs font-medium">{projects.length} Active Real Estate Developments</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-500/20"
         >
           <Plus size={16} />
           Create Project
@@ -75,7 +75,7 @@ export const AdminProjects: React.FC = () => {
               <div className="flex gap-2 pt-3 border-t border-slate-100">
                 <button
                   onClick={() => navigate('/admin/plot-layout')}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-black hover:bg-amber-600 transition-colors uppercase tracking-wider flex-1 shadow-2xs"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-sky-500 text-white rounded-xl text-xs font-black hover:from-blue-700 hover:to-sky-600 transition-all uppercase tracking-wider flex-1 shadow-sm"
                 >
                   <Map size={14} />
                   View Layout
@@ -107,32 +107,32 @@ export const AdminProjects: React.FC = () => {
               <div className="col-span-2">
                 <label className="text-xs font-bold text-slate-700 block mb-1">Project Name *</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="e.g. Green Valley Enclave" />
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="e.g. Seven Circle Palms" />
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Project Code</label>
                 <input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="GVE-2026" />
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="SCP-2026" />
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Location</label>
                 <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="Hyderabad, Telangana" />
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="Chennai, Tamil Nadu" />
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Total Land Area</label>
                 <input value={form.totalArea} onChange={e => setForm(f => ({ ...f, totalArea: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none" placeholder="12.5 Acres" />
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="12.5 Acres" />
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-amber-400 outline-none h-18 resize-none" placeholder="Project description..." />
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none h-18 resize-none" placeholder="Project description..." />
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={() => { setShowCreate(false); }} className="px-4 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50">Cancel</button>
-              <button onClick={() => setCreateStep('upload')} className="px-5 py-2.5 text-xs text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl font-black uppercase tracking-wider shadow-sm">
+              <button onClick={() => setCreateStep('upload')} className="px-5 py-2.5 text-xs text-white bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 rounded-xl font-black uppercase tracking-wider shadow-sm">
                 Next: Upload Layout & Data →
               </button>
             </div>
@@ -146,14 +146,14 @@ export const AdminProjects: React.FC = () => {
                 <div key={label}>
                   <label className="text-xs font-bold text-slate-700 block mb-2">{label}</label>
                   <div
-                    className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/30 transition-colors"
+                    className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center cursor-pointer hover:border-sky-400 hover:bg-sky-50/30 transition-colors"
                     onClick={() => label.includes('Excel') && setCreateStep('preview')}
                   >
                     <Upload size={24} className="text-slate-400 mx-auto mb-2" />
                     <p className="text-xs font-bold text-slate-700">Drag & Drop or Click to Select</p>
                     <p className="text-[10px] text-slate-400 mt-1">{label.includes('Excel') ? 'Excel file containing plot details' : 'Master plan diagram'}</p>
                     {label.includes('Excel') && (
-                      <p className="text-xs text-amber-700 font-bold mt-2.5 underline">Simulate Upload & Parse Data →</p>
+                      <p className="text-xs text-blue-600 font-bold mt-2.5 underline">Simulate Upload & Parse Data →</p>
                     )}
                   </div>
                 </div>
@@ -202,7 +202,7 @@ export const AdminProjects: React.FC = () => {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={() => setCreateStep('upload')} className="px-4 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50">← Back</button>
-              <button onClick={handleImport} className="px-6 py-2.5 text-xs text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl font-black uppercase tracking-wider shadow-sm">
+              <button onClick={handleImport} className="px-6 py-2.5 text-xs text-white bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 rounded-xl font-black uppercase tracking-wider shadow-sm">
                 Import 40 Plots to Master Plan →
               </button>
             </div>

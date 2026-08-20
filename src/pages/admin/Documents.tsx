@@ -21,7 +21,7 @@ export const AdminDocuments: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">Document Management</h1>
+        <h1 className="text-2xl font-black text-slate-900">Document Repository</h1>
         <p className="text-slate-500 text-xs font-medium mt-0.5">Manage customer KYC documents, channel partner agreements, deeds, and plans</p>
       </div>
 
@@ -46,8 +46,8 @@ export const AdminDocuments: React.FC = () => {
                 <tr key={doc.id} className="table-row-hover">
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-200/60">
-                        <FolderOpen size={15} className="text-amber-700" />
+                      <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-200/60">
+                        <FolderOpen size={15} className="text-blue-700" />
                       </div>
                       <div>
                         <div className="font-bold text-slate-900">{doc.name}</div>
@@ -66,7 +66,7 @@ export const AdminDocuments: React.FC = () => {
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => toast('Preview not available in demo')}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-700 hover:bg-blue-50 transition-colors"
                         title="Preview"
                       >
                         <Eye size={15} />

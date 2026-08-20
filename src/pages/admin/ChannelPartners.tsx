@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useChannelPartnerStore } from '../../store/stores';
 import { StatusBadge, ConfirmationModal, Tabs } from '../../components/ui/UIComponents';
-import { Search, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Search, AlertCircle } from 'lucide-react';
 import { formatCurrencyFull } from '../../utils/helpers';
 import toast from 'react-hot-toast';
 
@@ -43,7 +43,7 @@ export const AdminChannelPartners: React.FC = () => {
 
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
-      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-amber-400">
+      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-sky-500">
         <Search size={15} className="text-slate-400" />
         <input
           value={search}
@@ -73,7 +73,7 @@ export const AdminChannelPartners: React.FC = () => {
                 <tr key={cp.id} className="table-row-hover">
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center text-amber-900 font-black text-xs">
+                      <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center text-blue-900 font-black text-xs">
                         {cp.name.charAt(0)}
                       </div>
                       <div>
@@ -113,7 +113,7 @@ export const AdminChannelPartners: React.FC = () => {
                       {cp.status === 'approved' && (
                         <button
                           onClick={() => setActionConfirm({ cp, action: 'suspend' })}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-sky-700 hover:bg-sky-50 transition-colors"
                           title="Suspend Partner"
                         >
                           <AlertCircle size={15} />

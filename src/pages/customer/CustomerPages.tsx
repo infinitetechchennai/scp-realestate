@@ -1,248 +1,213 @@
 import React, { useState } from 'react';
-import { Plot } from '../../types';
-import { PlotMap } from '../../components/plots/PlotMap';
-import { PlotDetailsDrawer } from '../../components/plots/PlotDetailsDrawer';
 import { usePlotStore } from '../../store/plotStore';
+import { useBookingStore, usePaymentStore, useCustomerStore, useNotificationStore } from '../../store/stores';
 import { useAuthStore } from '../../store/authStore';
-import { useBookingStore, usePaymentStore, useNotificationStore } from '../../store/stores';
-import { mockCustomers, mockProjects } from '../../data/mockData';
-import { DashboardCard } from '../../components/ui/UIComponents';
 import { StatusBadge } from '../../components/ui/UIComponents';
-import { Map, BookOpen, CreditCard, Bell, DollarSign, CheckCircle } from 'lucide-react';
-import { formatCurrencyFull, formatCurrency } from '../../utils/helpers';
+import { PlotDetailsDrawer } from '../../components/plots/PlotDetailsDrawer';
+import { Plot } from '../../types';
+import { Search, MapPin, DollarSign, Clock, CreditCard, FolderOpen, Bell, User } from 'lucide-react';
+import { formatCurrencyFull, getDaysRemaining } from '../../utils/helpers';
+import { mockProjects, mockDocuments } from '../../data/mockData';
+import toast from 'react-hot-toast';
 
-// ── Customer Dashboard ────────────────────────────────────
 export const CustomerDashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const { plots } = usePlotStore();
   const { bookings } = useBookingStore();
-  const { payments } = usePaymentStore();
+  const { customers } = useCustomerStore();
+  const { plots } = usePlotStore();
 
-  const me = mockCustomers.find(c => c.email === user?.email) || mockCustomers[8];
-  const myBookings = bookings.filter(b => b.customerId === me?.id);
-  const myPayments = payments.filter(p => p.customerId === me?.id);
-  const totalPaid = myPayments.reduce((s, p) => s + p.amount, 0);
-  const availablePlots = plots.filter(p => p.status === 'available').length;
+  const customer = customers.find(c => c.email === user?.email) || customers[0];
+  const myBookings = bookings.filter(b => b.customerId === customer?.id || b.customerName === user?.name);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in max-w-5xl">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">Welcome, {me?.name || user?.name}!</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Buyer Portal — Track your booked plots, balance schedules, and documents</p>
+        <h1 className="text-2xl font-black text-slate-900">Welcome, {user?.name}!</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Track your allocated plots, payment schedules, receipts, and deed milestones</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <DashboardCard title="Available Plots" value={availablePlots} icon={Map} iconColor="text-emerald-600" subtitle="Ready for selection" />
-        <DashboardCard title="My Bookings" value={myBookings.length} icon={BookOpen} iconColor="text-amber-600" />
-        <DashboardCard title="Total Paid" value={formatCurrency(totalPaid)} icon={CreditCard} iconColor="text-emerald-700" />
-        <DashboardCard title="Balance Due" value={formatCurrency(me?.totalBalance || 0)} icon={DollarSign} iconColor="text-red-500" />
-        <DashboardCard title="Token Bookings" value={myBookings.filter(b => b.status === 'token_paid').length} icon={CheckCircle} iconColor="text-orange-500" />
-        <DashboardCard title="Confirmed Plots" value={myBookings.filter(b => b.status === 'confirmed').length} icon={CheckCircle} iconColor="text-red-600" />
-      </div>
-
-      {/* Active Deals Table */}
-      {myBookings.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">My Active Plot Bookings</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-                  <th className="text-left px-6 py-3.5">Plot No</th>
-                  <th className="text-left px-4 py-3.5">Township</th>
-                  <th className="text-right px-4 py-3.5">Total Amount</th>
-                  <th className="text-right px-4 py-3.5">Paid So Far</th>
-                  <th className="text-right px-4 py-3.5">Balance Due</th>
-                  <th className="text-left px-4 py-3.5">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {myBookings.map(b => (
-                  <tr key={b.id} className="table-row-hover">
-                    <td className="px-6 py-3.5 font-black text-slate-900">{b.plotNumber}</td>
-                    <td className="px-4 py-3.5 text-slate-600 font-medium">{b.projectName}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-slate-900">{formatCurrencyFull(b.totalAmount)}</td>
-                    <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(b.amountPaid)}</td>
-                    <td className="px-4 py-3.5 text-right font-black text-red-600">
-                      {b.balanceAmount > 0 ? formatCurrencyFull(b.balanceAmount) : '—'}
-                    </td>
-                    <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Overview Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <MapPin size={18} className="text-blue-700 mb-2" />
+          <div className="text-2xl font-black text-slate-900">{myBookings.length}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Booked Plots</div>
         </div>
-      )}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <DollarSign size={18} className="text-emerald-700 mb-2" />
+          <div className="text-2xl font-black text-emerald-800">{formatCurrencyFull(customer?.totalPaid || 20000)}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Total Paid</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <Clock size={18} className="text-red-600 mb-2" />
+          <div className="text-2xl font-black text-red-600">{formatCurrencyFull(customer?.totalBalance || 2380000)}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Balance Due</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <CreditCard size={18} className="text-sky-700 mb-2" />
+          <div className="text-2xl font-black text-sky-800">90 Days</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Payment Term</div>
+        </div>
+      </div>
+
+      {/* My Bookings Detailed Cards */}
+      <div className="space-y-4">
+        <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">My Active Plot Bookings</h3>
+        {myBookings.map(b => {
+          const plot = plots.find(p => p.id === b.plotId);
+          const daysLeft = b.tokenExpiry ? getDaysRemaining(b.tokenExpiry) : null;
+          return (
+            <div key={b.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="text-xl font-black text-slate-900">{b.plotNumber}</span>
+                  <StatusBadge status={b.status} size="md" />
+                </div>
+                <p className="text-xs text-slate-500 font-medium">{b.projectName}</p>
+                <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-600">
+                  <div><span className="text-slate-400 font-medium">Area: </span><span className="font-bold">{plot?.area || 1200} sq.ft</span></div>
+                  <div><span className="text-slate-400 font-medium">Total: </span><span className="font-bold">{formatCurrencyFull(b.totalAmount)}</span></div>
+                  <div><span className="text-slate-400 font-medium">Paid: </span><span className="font-bold text-emerald-700">{formatCurrencyFull(b.amountPaid)}</span></div>
+                  <div><span className="text-slate-400 font-medium">Balance: </span><span className="font-bold text-red-600">{formatCurrencyFull(b.balanceAmount)}</span></div>
+                </div>
+              </div>
+
+              {b.status === 'token_paid' && daysLeft !== null && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 text-center min-w-[160px]">
+                  <div className="text-[11px] font-bold text-orange-950">Token Expiry</div>
+                  <div className="text-base font-black text-orange-700">{daysLeft > 0 ? `${daysLeft} Days Left` : 'EXPIRED'}</div>
+                  <div className="text-[10px] text-orange-800 mt-0.5">{b.tokenExpiry}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
 
-// ── Customer Browse Plots ─────────────────────────────────
 export const CustomerPlots: React.FC = () => {
   const { plots } = usePlotStore();
+  const [search, setSearch] = useState('');
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
+
+  const available = plots.filter(p => p.status === 'available');
+  const filtered = available.filter(p => !search || p.plotNumber.toLowerCase().includes(search.toLowerCase()));
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">Explore Master Plan</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Click any available (green) plot on the map to review specifications and initiate token booking</p>
+        <h1 className="text-2xl font-black text-slate-900">Browse Available Plots</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Explore premium villa plots ready for immediate reservation</p>
       </div>
-      <PlotMap plots={plots} onPlotClick={setSelectedPlot} />
+
+      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-sky-500">
+        <Search size={15} className="text-slate-400" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search plot number..."
+          className="outline-none text-xs text-slate-800 bg-transparent flex-1 placeholder:text-slate-400" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filtered.map(p => (
+          <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between hover:border-sky-300 transition-all">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-black text-slate-900 text-base">{p.plotNumber}</span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Available</span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">{p.projectName}</p>
+              <div className="mt-3 space-y-1 text-xs text-slate-600">
+                <div className="flex justify-between"><span className="text-slate-400 font-medium">Area:</span><span className="font-bold">{p.area} sq.ft</span></div>
+                <div className="flex justify-between"><span className="text-slate-400 font-medium">Facing:</span><span className="font-bold">{p.facing}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400 font-medium">Road:</span><span className="font-bold">{p.roadWidth}</span></div>
+              </div>
+            </div>
+            <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Price</span>
+                <span className="font-black text-blue-900 text-sm">{formatCurrencyFull(p.totalPrice)}</span>
+              </div>
+              <button
+                onClick={() => setSelectedPlot(p)}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow-2xs"
+              >
+                View
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <PlotDetailsDrawer plot={selectedPlot} onClose={() => setSelectedPlot(null)} />
     </div>
   );
 };
 
-// ── Customer Projects ─────────────────────────────────────
-export const CustomerProjects: React.FC = () => (
-  <div className="space-y-6 animate-fade-in">
-    <div>
-      <h1 className="text-2xl font-black text-slate-900">Featured Townships</h1>
-      <p className="text-slate-500 text-xs font-medium mt-0.5">Premium HMDA & RERA approved residential layouts</p>
-    </div>
-    <div className="grid gap-6">
-      {mockProjects.filter(p => p.status === 'active').map(proj => (
-        <div key={proj.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row">
-          <div className="h-48 md:h-auto md:w-80 relative overflow-hidden bg-slate-900 flex-shrink-0">
-            {proj.imageUrl && <img src={proj.imageUrl} alt={proj.name} className="w-full h-full object-cover opacity-70" />}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
-            <div className="absolute bottom-4 left-5 text-white">
-              <h3 className="font-black text-xl">{proj.name}</h3>
-              <p className="text-slate-300 text-xs">{proj.location}</p>
-            </div>
-          </div>
-          <div className="p-6 flex-1 flex flex-col justify-between">
-            <p className="text-slate-600 text-xs font-medium mb-4 leading-relaxed">{proj.description}</p>
-            <div className="grid grid-cols-4 gap-2.5">
-              {[
-                { label: 'Total Plots', value: proj.totalPlots, color: 'text-slate-900' },
-                { label: 'Available', value: proj.availablePlots, color: 'text-emerald-700' },
-                { label: 'Booked', value: proj.tokenBookedPlots + proj.confirmedPlots, color: 'text-orange-600' },
-                { label: 'Sold Out', value: proj.soldPlots, color: 'text-slate-500' },
-              ].map(s => (
-                <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                  <div className={`text-base font-black ${s.color}`}>{s.value}</div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-// ── Customer Bookings ─────────────────────────────────────
-export const CustomerBookings: React.FC = () => {
-  const { user } = useAuthStore();
-  const { bookings } = useBookingStore();
-  const me = mockCustomers.find(c => c.email === user?.email) || mockCustomers[8];
-  const myBookings = bookings.filter(b => b.customerId === me?.id);
-
+export const CustomerProjects: React.FC = () => {
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">My Plot Bookings</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Overview of active plots, token receipts, and balance deadlines</p>
+        <h1 className="text-2xl font-black text-slate-900">Our Township Projects</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Explore approved master layouts and community developments</p>
       </div>
 
-      {myBookings.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-          <BookOpen size={40} className="text-slate-300 mx-auto mb-3" />
-          <h3 className="text-slate-700 font-bold text-sm">No Active Bookings</h3>
-          <p className="text-slate-400 text-xs mt-1">Browse available plots on the master plan map to start a booking</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {myBookings.map(b => (
-            <div key={b.id} className={`bg-white rounded-2xl border-2 shadow-xs p-6 ${
-              b.status === 'token_paid' ? 'border-orange-200 bg-orange-50/20' :
-              b.status === 'confirmed' ? 'border-red-200 bg-red-50/20' : 'border-slate-200'
-            }`}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-900">{b.plotNumber} — {b.projectName}</h3>
-                  <p className="text-xs text-slate-400 font-mono mt-0.5">Booking Date: {b.bookingDate}</p>
-                </div>
-                <StatusBadge status={b.status} size="md" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {mockProjects.map(proj => (
+          <div key={proj.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+            <div className="h-44 bg-slate-900 relative overflow-hidden">
+              {proj.imageUrl && <img src={proj.imageUrl} alt={proj.name} className="w-full h-full object-cover opacity-75" />}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+              <div className="absolute bottom-4 left-5 text-white">
+                <h3 className="font-black text-lg leading-tight">{proj.name}</h3>
+                <p className="text-slate-300 text-xs mt-0.5">{proj.location}</p>
               </div>
-              <div className="grid grid-cols-3 gap-4 bg-white p-4 rounded-xl border border-slate-100">
-                <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Value</p>
-                  <p className="font-black text-slate-900 text-sm mt-0.5">{formatCurrencyFull(b.totalAmount)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Amount Paid</p>
-                  <p className="font-black text-emerald-700 text-sm mt-0.5">{formatCurrencyFull(b.amountPaid)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Balance Due</p>
-                  <p className={`font-black text-sm mt-0.5 ${b.balanceAmount > 0 ? 'text-red-600' : 'text-emerald-700'}`}>
-                    {b.balanceAmount > 0 ? formatCurrencyFull(b.balanceAmount) : '✓ Cleared'}
-                  </p>
-                </div>
-              </div>
-              {b.status === 'token_paid' && (
-                <div className="mt-3 text-xs bg-orange-50 border border-orange-200 rounded-xl p-3 text-orange-950 font-bold">
-                  ⏳ 7-Day Token Hold Expiry: {b.tokenExpiry}
-                </div>
-              )}
-              {b.status === 'confirmed' && b.paymentDeadline && (
-                <div className="mt-3 text-xs bg-red-50 border border-red-200 rounded-xl p-3 text-red-950 font-bold">
-                  ⚠️ 90-Day Settlement Deadline: {b.paymentDeadline}
-                </div>
-              )}
             </div>
-          ))}
-        </div>
-      )}
+            <div className="p-5">
+              <p className="text-xs text-slate-600 leading-relaxed">{proj.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-// ── Customer Payments ─────────────────────────────────────
-export const CustomerPayments: React.FC = () => {
+export const CustomerBookings: React.FC = () => {
   const { user } = useAuthStore();
-  const { payments } = usePaymentStore();
-  const me = mockCustomers.find(c => c.email === user?.email) || mockCustomers[8];
-  const myPayments = payments.filter(p => p.customerId === me?.id);
-  const total = myPayments.reduce((s, p) => s + p.amount, 0);
+  const { bookings } = useBookingStore();
+  const myBookings = bookings.filter(b => b.customerName === user?.name || b.customerId === 'cust-001');
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">Payment Receipts</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Receipts and verification confirmations for all transactions</p>
+        <h1 className="text-2xl font-black text-slate-900">My Plot Reservations</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Status of your token advances, confirmation agreements, and registration schedule</p>
       </div>
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center justify-between shadow-2xs">
-        <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider">Total Payments Settled</span>
-        <span className="text-2xl font-black text-emerald-800">{formatCurrencyFull(total)}</span>
-      </div>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-              <th className="text-left px-6 py-3.5">Payment Date</th>
+              <th className="text-left px-6 py-3.5">Booking ID</th>
               <th className="text-left px-4 py-3.5">Plot No</th>
-              <th className="text-left px-4 py-3.5">Payment Type</th>
-              <th className="text-left px-4 py-3.5">Method</th>
-              <th className="text-right px-4 py-3.5">Amount Paid</th>
-              <th className="text-left px-4 py-3.5">Bank Reference</th>
+              <th className="text-left px-4 py-3.5">Project</th>
+              <th className="text-left px-4 py-3.5">Date</th>
+              <th className="text-right px-4 py-3.5">Paid</th>
+              <th className="text-right px-4 py-3.5">Balance</th>
+              <th className="text-left px-4 py-3.5">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {myPayments.map(p => (
-              <tr key={p.id} className="table-row-hover">
-                <td className="px-6 py-3.5 text-slate-500 font-mono text-[11px]">{p.date}</td>
-                <td className="px-4 py-3.5 font-black text-slate-900">{p.plotNumber || '—'}</td>
-                <td className="px-4 py-3.5 text-slate-600 capitalize">{p.type.replace('_', ' ')}</td>
-                <td className="px-4 py-3.5 text-slate-500 capitalize">{p.method.replace('_', ' ')}</td>
-                <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(p.amount)}</td>
-                <td className="px-4 py-3.5 font-mono text-slate-400 text-[11px]">{p.reference || '—'}</td>
+            {myBookings.map(b => (
+              <tr key={b.id} className="table-row-hover">
+                <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{b.id}</td>
+                <td className="px-4 py-3.5 font-black text-slate-900">{b.plotNumber}</td>
+                <td className="px-4 py-3.5 text-slate-600">{b.projectName}</td>
+                <td className="px-4 py-3.5 text-slate-400 font-mono">{b.bookingDate}</td>
+                <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(b.amountPaid)}</td>
+                <td className="px-4 py-3.5 text-right font-black text-red-600">{b.balanceAmount > 0 ? formatCurrencyFull(b.balanceAmount) : '—'}</td>
+                <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
               </tr>
             ))}
           </tbody>
@@ -252,60 +217,96 @@ export const CustomerPayments: React.FC = () => {
   );
 };
 
-// ── Customer Documents ────────────────────────────────────
-export const CustomerDocuments: React.FC = () => {
-  const docs = [
-    { name: 'Aadhar Card KYC Verification', status: 'verified' },
-    { name: 'PAN Card Verification', status: 'verified' },
-    { name: 'Sale Agreement Deed - Plot P-018', status: 'pending_verification' },
-    { name: 'Token Advance Official Receipt', status: 'verified' },
-  ];
-
+export const CustomerPayments: React.FC = () => {
+  const { payments } = usePaymentStore();
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
+    <div className="space-y-6 animate-fade-in max-w-4xl">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">My Legal Documents</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Access official deeds, receipts, and KYC verifications</p>
+        <h1 className="text-2xl font-black text-slate-900">My Payments & Receipts</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Verified payment receipts and transaction records</p>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="space-y-3 divide-y divide-slate-100">
-          {docs.map(doc => (
-            <div key={doc.name} className="flex items-center justify-between py-3 first:pt-0">
-              <span className="text-xs font-bold text-slate-800">{doc.name}</span>
-              <StatusBadge status={doc.status} />
-            </div>
-          ))}
-        </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-slate-50 border-b border-slate-100">
+            <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+              <th className="text-left px-6 py-3.5">Payment ID</th>
+              <th className="text-left px-4 py-3.5">Plot No</th>
+              <th className="text-left px-4 py-3.5">Type</th>
+              <th className="text-left px-4 py-3.5">Method</th>
+              <th className="text-right px-4 py-3.5">Amount</th>
+              <th className="text-left px-4 py-3.5">Date</th>
+              <th className="text-left px-4 py-3.5">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {payments.slice(0, 5).map(p => (
+              <tr key={p.id} className="table-row-hover">
+                <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{p.id}</td>
+                <td className="px-4 py-3.5 font-black">{p.plotNumber || '—'}</td>
+                <td className="px-4 py-3.5 capitalize text-slate-600">{p.type.replace('_', ' ')}</td>
+                <td className="px-4 py-3.5 capitalize text-slate-500">{p.method.replace('_', ' ')}</td>
+                <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(p.amount)}</td>
+                <td className="px-4 py-3.5 text-slate-400 font-mono">{p.date}</td>
+                <td className="px-4 py-3.5"><StatusBadge status={p.status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 };
 
-// ── Customer Notifications ────────────────────────────────
-export const CustomerNotifications: React.FC = () => {
-  const { notifications, markRead, markAllRead } = useNotificationStore();
-  const userNotifs = notifications.filter(n => n.targetRoles.includes('customer'));
-
+export const CustomerDocuments: React.FC = () => {
+  const docs = mockDocuments.filter(d => d.type === 'customer' || d.type === 'agreement' || d.type === 'payment_receipt');
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900">Notifications</h1>
-          <p className="text-slate-500 text-xs font-medium mt-0.5">Booking alerts, payment deadlines, and status updates</p>
-        </div>
-        <button onClick={markAllRead} className="text-xs text-amber-600 hover:text-amber-700 font-bold">Mark all read</button>
+      <div>
+        <h1 className="text-2xl font-black text-slate-900">My Documents & Receipts</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Download sale agreements, payment invoices, and verified identity proofs</p>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
-        {userNotifs.map(n => (
-          <div key={n.id} onClick={() => markRead(n.id)}
-            className={`flex gap-4 px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${!n.isRead ? 'bg-amber-50/40' : ''}`}>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border ${!n.isRead ? 'bg-amber-100 border-amber-200' : 'bg-slate-100 border-slate-200'}`}>
-              <Bell size={16} className={!n.isRead ? 'text-amber-700' : 'text-slate-400'} />
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+        {docs.map(d => (
+          <div key={d.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center">
+                <FolderOpen size={18} />
+              </div>
+              <div>
+                <p className="font-bold text-xs text-slate-900">{d.name}</p>
+                <p className="text-[10px] text-slate-400">{d.fileSize} · {d.fileType}</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className={`text-xs font-bold ${!n.isRead ? 'text-slate-950 font-black' : 'text-slate-700'}`}>{n.title}</p>
+            <button onClick={() => toast.success('✓ Download started')} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors">
+              Download
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const CustomerNotifications: React.FC = () => {
+  const { notifications, markRead } = useNotificationStore();
+  return (
+    <div className="space-y-6 animate-fade-in max-w-4xl">
+      <div>
+        <h1 className="text-2xl font-black text-slate-900">Notifications & Alerts</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Payment reminders, token expiry warnings, and allotment notices</p>
+      </div>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+        {notifications.slice(0, 5).map(n => (
+          <div key={n.id} onClick={() => markRead(n.id)} className="p-4 flex items-start gap-3.5 hover:bg-slate-50 cursor-pointer transition-colors">
+            <div className="w-9 h-9 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Bell size={18} />
+            </div>
+            <div>
+              <p className="font-bold text-xs text-slate-900">{n.title}</p>
               <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
-              <p className="text-[10px] text-slate-400 mt-1 font-mono">{new Date(n.createdAt).toLocaleDateString('en-IN')}</p>
+              <p className="text-[10px] text-slate-400 mt-1">{new Date(n.createdAt).toLocaleDateString('en-IN')}</p>
             </div>
           </div>
         ))}
@@ -314,42 +315,28 @@ export const CustomerNotifications: React.FC = () => {
   );
 };
 
-// ── Customer Profile ──────────────────────────────────────
 export const CustomerProfile: React.FC = () => {
   const { user } = useAuthStore();
-  const me = mockCustomers.find(c => c.email === user?.email) || mockCustomers[8];
-
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
       <div>
         <h1 className="text-2xl font-black text-slate-900">Buyer Profile</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Your personal information and channel partner assignment</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Your personal contact details and registration preferences</p>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-        <div className="flex items-center gap-4 pb-6 border-b border-slate-100">
-          <div className="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center text-slate-950 text-2xl font-black shadow-sm">
-            {me?.name?.charAt(0) || 'C'}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+          <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-sky-500 text-white rounded-2xl flex items-center justify-center text-xl font-black shadow-sm">
+            {user?.name?.charAt(0) || 'C'}
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-900">{me?.name}</h2>
-            <p className="text-slate-500 text-xs font-medium">Verified Property Buyer</p>
-            <div className="mt-1.5"><StatusBadge status={me?.status || 'active'} /></div>
+            <h3 className="font-black text-slate-900 text-base">{user?.name}</h3>
+            <p className="text-xs text-slate-400 capitalize">{user?.role?.replace('_', ' ')}</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: 'Email Address', value: me?.email },
-            { label: 'Mobile Number', value: me?.phone },
-            { label: 'Permanent Address', value: me?.address },
-            { label: 'Aadhar Card Number', value: me?.aadhar },
-            { label: 'PAN Card Number', value: me?.pan },
-            { label: 'Assigned Channel Partner', value: me?.assignedChannelPartnerName || 'Direct Booking' },
-          ].map(item => (
-            <div key={item.label} className={item.label.includes('Address') ? 'col-span-2' : ''}>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{item.label}</p>
-              <p className="text-xs text-slate-800 font-semibold">{item.value || '—'}</p>
-            </div>
-          ))}
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between py-2 border-b border-slate-100"><span className="text-slate-400 font-medium">Email:</span><span className="font-bold text-slate-800">{user?.email}</span></div>
+          <div className="flex justify-between py-2 border-b border-slate-100"><span className="text-slate-400 font-medium">Phone:</span><span className="font-bold text-slate-800">+91 98765 43210</span></div>
+          <div className="flex justify-between py-2"><span className="text-slate-400 font-medium">KYC Status:</span><span className="text-emerald-700 font-bold">Verified</span></div>
         </div>
       </div>
     </div>

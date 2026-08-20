@@ -90,9 +90,9 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
                 </div>
               ))}
             </div>
-            <div className="mt-3 bg-amber-50 border border-amber-200/80 rounded-xl p-4 flex items-center justify-between shadow-2xs">
-              <span className="text-xs text-amber-900 font-bold uppercase tracking-wider">Total Price</span>
-              <span className="text-xl font-black text-amber-900">{formatCurrencyFull(plot.totalPrice)}</span>
+            <div className="mt-3 bg-gradient-to-r from-blue-50 to-sky-50 border border-sky-200 rounded-xl p-4 flex items-center justify-between shadow-2xs">
+              <span className="text-xs text-blue-900 font-bold uppercase tracking-wider">Total Price</span>
+              <span className="text-xl font-black text-blue-800">{formatCurrencyFull(plot.totalPrice)}</span>
             </div>
           </div>
 
@@ -144,14 +144,14 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
                       <div className={`flex items-center gap-3 p-3 rounded-xl border ${
                         deadlineDays !== null && deadlineDays <= 15
                           ? 'bg-red-50 border-red-200 text-red-800'
-                          : 'bg-amber-50 border-amber-200 text-amber-900'
+                          : 'bg-sky-50 border-sky-200 text-blue-900'
                       }`}>
-                        <AlertCircle size={16} className={deadlineDays !== null && deadlineDays <= 15 ? 'text-red-500' : 'text-amber-600'} />
+                        <AlertCircle size={16} className={deadlineDays !== null && deadlineDays <= 15 ? 'text-red-500' : 'text-sky-600'} />
                         <div>
                           <div className="text-[11px] font-bold">90-Day Payment Deadline</div>
                           <div className="text-xs font-black">{plot.paymentDeadline}</div>
                           {deadlineDays !== null && (
-                            <div className={`text-[10px] font-bold mt-0.5 ${deadlineDays <= 15 ? 'text-red-600' : 'text-amber-700'}`}>
+                            <div className={`text-[10px] font-bold mt-0.5 ${deadlineDays <= 15 ? 'text-red-600' : 'text-sky-600'}`}>
                               {deadlineDays > 0 ? `${deadlineDays} days remaining` : 'OVERDUE'}
                             </div>
                           )}
@@ -182,7 +182,7 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
           {plot.status === 'available' && (
             <button
               onClick={() => setShowBookingWizard(true)}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-black text-xs uppercase tracking-wider transition-colors shadow-sm"
+              className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20"
             >
               Start Booking
             </button>

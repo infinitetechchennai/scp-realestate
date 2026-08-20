@@ -43,7 +43,7 @@ export const AdminReports: React.FC = () => {
           </button>
           <button
             onClick={exportPDF}
-            className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-blue-500/20"
           >
             <Download size={14} />
             Export PDF
@@ -118,7 +118,7 @@ export const AdminReports: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {bookings.map(b => (
                 <tr key={b.id} className="table-row-hover">
-                  <td className="px-4 py-2.5 font-mono text-xs font-bold text-amber-700">{b.id}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs font-bold text-blue-700">{b.id}</td>
                   <td className="px-4 py-2.5 font-bold text-slate-900">{b.customerName}</td>
                   <td className="px-4 py-2.5 font-black">{b.plotNumber}</td>
                   <td className="px-4 py-2.5 text-slate-500 font-mono">{b.bookingDate}</td>
@@ -149,7 +149,7 @@ export const AdminReports: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {payments.map(p => (
                 <tr key={p.id} className="table-row-hover">
-                  <td className="px-4 py-2.5 font-mono text-xs font-bold text-amber-700">{p.id}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs font-bold text-blue-700">{p.id}</td>
                   <td className="px-4 py-2.5 font-bold text-slate-900">{p.customerName}</td>
                   <td className="px-4 py-2.5 font-bold text-slate-800">{p.plotNumber || '—'}</td>
                   <td className="px-4 py-2.5 text-right font-black text-emerald-700">{formatCurrencyFull(p.amount)}</td>
@@ -184,7 +184,7 @@ export const AdminReports: React.FC = () => {
                   <td className="px-4 py-2.5 text-right font-medium">{cp.totalBookings}</td>
                   <td className="px-4 py-2.5 text-right font-bold text-slate-900">{cp.totalSold}</td>
                   <td className="px-4 py-2.5 text-right font-black text-emerald-700">{formatCurrencyFull(cp.totalRevenue)}</td>
-                  <td className="px-4 py-2.5 text-right font-black text-amber-700">{formatCurrencyFull(cp.commission)}</td>
+                  <td className="px-4 py-2.5 text-right font-black text-blue-700">{formatCurrencyFull(cp.commission)}</td>
                 </tr>
               ))}
             </tbody>
@@ -201,7 +201,7 @@ export const AdminReports: React.FC = () => {
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} />
               <YAxis tickFormatter={v => `₹${(v / 100000).toFixed(0)}L`} tick={{ fontSize: 11, fill: '#64748b' }} />
               <Tooltip formatter={(v: number) => [`₹${(v / 100000).toFixed(2)} Lakhs`, '']} />
-              <Bar dataKey="total" name="Total Revenue" fill="#d97706" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="total" name="Total Revenue" fill="#0284c7" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

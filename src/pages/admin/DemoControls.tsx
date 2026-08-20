@@ -83,11 +83,11 @@ export const DemoControls: React.FC = () => {
         <p className="text-slate-500 text-xs font-medium mt-0.5">Simulate automatic business rules, countdown expiries, and state transitions on the frontend</p>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
-        <AlertTriangle size={18} className="text-amber-700 mt-0.5 flex-shrink-0" />
+      <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
+        <AlertTriangle size={18} className="text-sky-700 mt-0.5 flex-shrink-0" />
         <div>
-          <p className="text-xs font-black text-amber-950 uppercase tracking-wider">Frontend Simulation Mode</p>
-          <p className="text-xs text-amber-900 font-medium mt-0.5">Use these buttons to instantly trigger the automatic 7-day token expiry or 90-day booking expiry rules without waiting real calendar days.</p>
+          <p className="text-xs font-black text-blue-950 uppercase tracking-wider">Frontend Simulation Mode</p>
+          <p className="text-xs text-blue-900 font-medium mt-0.5">Use these buttons to instantly trigger the automatic 7-day token expiry or 90-day booking expiry rules without waiting real calendar days.</p>
         </div>
       </div>
 
@@ -101,9 +101,9 @@ export const DemoControls: React.FC = () => {
             { label: 'Token Booked', value: stats.token, color: 'text-orange-600' },
             { label: 'Confirmed', value: stats.confirmed, color: 'text-red-600' },
             { label: 'Sold Out', value: stats.sold, color: 'text-slate-600' },
-            { label: 'Bookings', value: stats.bookings, color: 'text-amber-700' },
+            { label: 'Bookings', value: stats.bookings, color: 'text-blue-700' },
             { label: 'Payments', value: stats.payments, color: 'text-emerald-700' },
-            { label: 'Customers', value: stats.customers, color: 'text-stone-700' },
+            { label: 'Customers', value: stats.customers, color: 'text-sky-700' },
             { label: 'Unread Alerts', value: stats.unread, color: 'text-red-500' },
           ].map(s => (
             <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
@@ -141,16 +141,16 @@ export const DemoControls: React.FC = () => {
           icon={Zap}
           title="Jump to Master Plan Map"
           description="Open the visual plot layout grid to interact with plots live"
-          color="amber"
+          color="blue"
           onClick={() => window.location.href = '/admin/plot-layout'}
         />
       </div>
 
       {/* Activity Log */}
       {log.length > 0 && (
-        <div className="bg-[#0c0f17] border border-[#1e2638] rounded-2xl p-5 shadow-lg">
+        <div className="bg-[#080e1a] border border-[#131f37] rounded-2xl p-5 shadow-lg">
           <h3 className="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider">Simulation Event Log</h3>
-          <div className="space-y-1.5 max-h-40 overflow-y-auto font-mono text-xs text-amber-400">
+          <div className="space-y-1.5 max-h-40 overflow-y-auto font-mono text-xs text-sky-400">
             {log.map((entry, i) => (
               <p key={i} className="opacity-90">{entry}</p>
             ))}
@@ -172,13 +172,13 @@ const DemoButton: React.FC<{
     orange: 'border-orange-200 hover:border-orange-400 hover:bg-orange-50/50',
     red: 'border-red-200 hover:border-red-400 hover:bg-red-50/50',
     gray: 'border-slate-200 hover:border-slate-400 hover:bg-slate-50',
-    amber: 'border-amber-200 hover:border-amber-400 hover:bg-amber-50/50',
+    blue: 'border-blue-200 hover:border-blue-400 hover:bg-blue-50/50',
   };
   const iconMap: Record<string, string> = {
     orange: 'text-orange-600 bg-orange-100',
     red: 'text-red-600 bg-red-100',
     gray: 'text-slate-600 bg-slate-100',
-    amber: 'text-amber-800 bg-amber-100',
+    blue: 'text-blue-700 bg-blue-100',
   };
 
   return (

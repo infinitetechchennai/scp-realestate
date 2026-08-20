@@ -3,8 +3,8 @@ import { mockAuditLogs } from '../../data/mockData';
 
 export const AuditLogs: React.FC = () => {
   const roleColors: Record<string, string> = {
-    super_admin: 'text-amber-900 bg-amber-50 border border-amber-200',
-    channel_partner: 'text-orange-900 bg-orange-50 border border-orange-200',
+    super_admin: 'text-blue-900 bg-blue-50 border border-blue-200',
+    channel_partner: 'text-sky-900 bg-sky-50 border border-sky-200',
     customer: 'text-emerald-900 bg-emerald-50 border border-emerald-200',
   };
 
@@ -41,7 +41,7 @@ export const AuditLogs: React.FC = () => {
                       {log.userRole.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 font-bold text-amber-800">{log.action}</td>
+                  <td className="px-4 py-3.5 font-bold text-blue-800">{log.action}</td>
                   <td className="px-4 py-3.5 text-slate-500">{log.module}</td>
                   <td className="px-4 py-3.5 text-slate-700 max-w-xs truncate font-medium">{log.description}</td>
                   <td className="px-4 py-3.5 font-mono text-slate-400 text-[11px]">{log.ipAddress}</td>

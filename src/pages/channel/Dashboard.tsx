@@ -25,14 +25,14 @@ export const ChannelDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <DashboardCard title="My Customers" value={cp?.totalCustomers || 0} icon={Users} iconColor="text-stone-700" />
-        <DashboardCard title="Active Leads" value={cp?.totalLeads || 0} icon={TrendingUp} iconColor="text-amber-600" />
+        <DashboardCard title="My Customers" value={cp?.totalCustomers || 0} icon={Users} iconColor="text-blue-700" />
+        <DashboardCard title="Active Leads" value={cp?.totalLeads || 0} icon={TrendingUp} iconColor="text-sky-600" />
         <DashboardCard title="Token Bookings" value={tokenBookings} icon={Clock} iconColor="text-orange-500" />
         <DashboardCard title="Confirmed" value={confirmedBookings} icon={BookOpen} iconColor="text-red-600" />
         <DashboardCard title="Plots Sold" value={soldBookings} icon={CheckCircle} iconColor="text-slate-600" />
         <DashboardCard title="Total Sales" value={formatCurrency(cp?.totalRevenue || 0)} icon={DollarSign} iconColor="text-emerald-600" />
-        <DashboardCard title="Commission" value={formatCurrency(cp?.commission || 0)} icon={Award} iconColor="text-amber-700" />
-        <DashboardCard title="Pending Payout" value={formatCurrency(cp?.pendingCommission || 0)} icon={Star} iconColor="text-orange-600" />
+        <DashboardCard title="Commission" value={formatCurrency(cp?.commission || 0)} icon={Award} iconColor="text-blue-700" />
+        <DashboardCard title="Pending Payout" value={formatCurrency(cp?.pendingCommission || 0)} icon={Star} iconColor="text-sky-600" />
       </div>
 
       {/* Recent Bookings */}
