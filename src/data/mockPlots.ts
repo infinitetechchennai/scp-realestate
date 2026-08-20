@@ -335,6 +335,105 @@ export const mockPlots: Plot[] = [
   },
 ];
 
+export const mockSurveyPlots: Plot[] = [
+  {
+    id: 'plot-s01', plotNumber: 'P-01', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1755, dimensions: "54'-5\" x 32'-4\"", facing: 'North',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1755 * 2500, status: 'confirmed',
+    row: 1, col: 1, tokenRequired: 100000, customerName: 'Ramesh Reddy'
+  },
+  {
+    id: 'plot-s02', plotNumber: 'P-02', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1285, dimensions: "27'-5\" x 52'-10\"", facing: 'North',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 3212500, status: 'available',
+    row: 1, col: 2, tokenRequired: 100000
+  },
+  {
+    id: 'plot-s03', plotNumber: 'P-03', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1256, dimensions: "29'-7\" x 42'-3\"", facing: 'North',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1256 * 2500, status: 'confirmed',
+    row: 1, col: 3, tokenRequired: 100000, customerName: 'Sanjay Gupta'
+  },
+  {
+    id: 'plot-s04', plotNumber: 'P-04', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1369, dimensions: "30'-1\" x 28'-5\"", facing: 'North',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1369 * 2500, status: 'available',
+    row: 1, col: 4, tokenRequired: 100000
+  },
+  {
+    id: 'plot-s05', plotNumber: 'P-05', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1416, dimensions: "28'-3\" x 28'-2\"", facing: 'North',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1416 * 2500, status: 'available',
+    row: 1, col: 5, tokenRequired: 100000
+  },
+  {
+    id: 'plot-s06', plotNumber: 'P-06', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1711, dimensions: "29'-1\" x 32'-7\"", facing: 'North',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1711 * 2500, status: 'confirmed',
+    row: 2, col: 1, tokenRequired: 100000, customerName: 'Kiran Rao'
+  },
+  {
+    id: 'plot-s07', plotNumber: 'P-07', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1372, dimensions: "37'-8\" x 21'-8\"", facing: 'East',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1372 * 2500, status: 'confirmed',
+    row: 2, col: 2, tokenRequired: 100000, customerName: 'Deepak V.'
+  },
+  {
+    id: 'plot-s08', plotNumber: 'P-08', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1370, dimensions: "34'-2\" x 28'-8\"", facing: 'East',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1370 * 2500, status: 'confirmed',
+    row: 2, col: 3, tokenRequired: 100000, customerName: 'Pooja K.'
+  },
+  {
+    id: 'plot-s09', plotNumber: 'P-09', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1509, dimensions: "37'-3\" x 33'-8\"", facing: 'East',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1509 * 2500, status: 'confirmed',
+    row: 2, col: 4, tokenRequired: 100000, customerName: 'Vikram S.'
+  },
+  {
+    id: 'plot-s10', plotNumber: 'P-10', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1506, dimensions: "39'-1\" x 38'-5\"", facing: 'East',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1506 * 2500, status: 'confirmed',
+    row: 2, col: 5, tokenRequired: 100000, customerName: 'Manish P.'
+  },
+  {
+    id: 'plot-s11', plotNumber: 'P-11', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1587, dimensions: "36'-6\" x 43'-1\"", facing: 'South',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1587 * 2500, status: 'confirmed',
+    row: 3, col: 1, tokenRequired: 100000, customerName: 'Ashok N.'
+  },
+  {
+    id: 'plot-s12', plotNumber: 'P-12', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1369, dimensions: "40'-1\" x 38'-8\"", facing: 'South',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1369 * 2500, status: 'confirmed',
+    row: 3, col: 2, tokenRequired: 100000, customerName: 'Vijay K.'
+  },
+  {
+    id: 'plot-s13', plotNumber: 'P-13', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1374, dimensions: "27'-9\" x 40'-3\"", facing: 'South',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1374 * 2500, status: 'available',
+    row: 3, col: 3, tokenRequired: 100000
+  },
+  {
+    id: 'plot-s14', plotNumber: 'P-14', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1693, dimensions: "49'-11\" x 33'-10\"", facing: 'West',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1693 * 2500, status: 'confirmed',
+    row: 3, col: 4, tokenRequired: 100000, customerName: 'Sunita M.'
+  },
+  {
+    id: 'plot-s15', plotNumber: 'P-15', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1627, dimensions: "51'-2\" x 49'-3\"", facing: 'West',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1627 * 2500, status: 'confirmed',
+    row: 3, col: 5, tokenRequired: 100000, customerName: 'Harish R.'
+  },
+  {
+    id: 'plot-s16', plotNumber: 'P-16', projectId: 'proj-001', projectName: 'Greens Ventures',
+    location: 'Main Layout, Hyderabad', area: 1692, dimensions: "48'-3\" x 34'-10\"", facing: 'West',
+    roadWidth: '13 ft', pricePerSqft: 2500, totalPrice: 1692 * 2500, status: 'confirmed',
+    row: 4, col: 1, tokenRequired: 100000, customerName: 'Ravi Teja'
+  },
+];
+
 export function getPlotStatusCounts(plots: Plot[]) {
   return {
     total: plots.length,

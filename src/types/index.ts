@@ -59,6 +59,9 @@ export interface Project {
   status: 'active' | 'inactive' | 'completed';
   imageUrl?: string;
   layoutUrl?: string;
+  blueprintUrl?: string;
+  tokenRequired?: number;
+  defaultPricePerSqft?: number;
   createdAt: string;
 }
 
@@ -78,6 +81,8 @@ export interface Plot {
   status: PlotStatus;
   row: number; // for layout rendering
   col: number; // for layout rendering
+  tokenRequired?: number;
+  blueprintCoords?: { x: number; y: number; width?: number; height?: number };
   // booking info
   bookingId?: string;
   customerId?: string;
