@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plot } from '../../types';
 import { usePlotStore } from '../../store/plotStore';
-import { TownshipInteractiveBlueprint } from './TownshipInteractiveBlueprint';
+import { ExactCadInteractiveBlueprint } from './ExactCadInteractiveBlueprint';
 import { SurveyBlueprintDiagram } from './SurveyBlueprintDiagram';
 import { BookingWizard } from '../booking/BookingWizard';
 import { formatCurrencyFull, cn } from '../../utils/helpers';
@@ -84,7 +84,7 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
                 )}
               >
                 <Layers size={13} className={blueprintPreset === 'township_184' ? 'text-amber-600' : ''} />
-                Client Master Layout (184 Plots)
+                Client CAD Blueprint (184 Plots)
               </button>
               <button
                 type="button"
@@ -122,10 +122,11 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
             />
           </div>
         ) : (
-          <TownshipInteractiveBlueprint
+          <ExactCadInteractiveBlueprint
             plots={plots}
             selectedPlotNumber={currentPlot?.plotNumber}
             onSelectPlot={handleDiagramSelect}
+            blueprintImageUrl={blueprintImage || '/blueprint.png'}
           />
         )}
       </div>
