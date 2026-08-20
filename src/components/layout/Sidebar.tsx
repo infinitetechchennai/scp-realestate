@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Map, BookOpen, Users, Handshake,
   CreditCard, FileBarChart, Bell, FolderOpen, Settings, ClipboardList,
   LogOut, ChevronLeft, ChevronRight, MapPin, X,
-  Zap, UserCircle, DollarSign, Award,
+  UserCircle, DollarSign,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/stores';
@@ -55,10 +55,20 @@ const customerNav: NavItem[] = [
 interface SidebarProps {
   mobileOpen: boolean;
   onMobileClose: () => void;
+  collapsed?: boolean;
+  setCollapsed?: (collapsed: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
-  const [collapsed, setCollapsed] = useState(false);
+export const Sidebar: React.FC<SidebarProps> = ({
+  mobileOpen,
+  onMobileClose,
+  collapsed: propCollapsed,
+  setCollapsed: propSetCollapsed,
+}) => {
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = propCollapsed !== undefined ? propCollapsed : internalCollapsed;
+  const setCollapsed = propSetCollapsed || setInternalCollapsed;
+
   const { user, logout } = useAuthStore();
   const { notifications } = useNotificationStore();
   const navigate = useNavigate();
@@ -77,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) =
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-[#080e1a]">
+    <div className="flex flex-col h-full bg-[#080e1a] relative">
       {/* Logo Banner */}
       <div className={cn(
         'flex items-center px-4 py-4 border-b border-[#131f37]',
@@ -161,10 +171,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) =
         </button>
       </div>
 
-      {/* Collapse toggle */}
+      {/* Collapse toggle button */}
       <button
+        type="button"
         onClick={() => setCollapsed(!collapsed)}
-        className="hidden lg:flex items-center justify-center h-7 w-7 absolute -right-3.5 top-20 bg-[#0e172a] border border-[#1e293b] rounded-full text-slate-400 hover:text-sky-400 transition-colors z-20 shadow-md"
+        className="hidden lg:flex items-center justify-center h-7 w-7 absolute -right-3.5 top-20 bg-[#0e172a] border border-[#1e293b] rounded-full text-slate-400 hover:text-sky-400 transition-colors z-40 shadow-md"
+        title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
       >
         {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
       </button>
@@ -176,7 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) =
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden lg:flex flex-col bg-[#080e1a] fixed left-0 top-0 h-full z-30 transition-all duration-200 border-r border-[#131f37]',
+          'hidden lg:flex flex-col bg-[#080e1a] h-full flex-shrink-0 relative z-30 transition-all duration-200 border-r border-[#131f37]',
           collapsed ? 'w-16' : 'w-60'
         )}
       >
