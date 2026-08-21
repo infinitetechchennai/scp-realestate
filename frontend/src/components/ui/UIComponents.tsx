@@ -10,10 +10,12 @@ interface StatusBadgeProps {
 
 const statusConfig: Record<string, { classes: string; icon?: React.ReactNode }> = {
   available: { classes: 'text-emerald-700 bg-emerald-50 border border-emerald-200', icon: <CheckCircle size={11} /> },
-  token_booked: { classes: 'text-orange-700 bg-orange-50 border border-orange-200', icon: <Clock size={11} /> },
-  token_paid: { classes: 'text-orange-700 bg-orange-50 border border-orange-200', icon: <Clock size={11} /> },
+  token_booked: { classes: 'text-yellow-900 bg-yellow-100 border border-yellow-300', icon: <Clock size={11} /> },
+  token_paid: { classes: 'text-yellow-900 bg-yellow-100 border border-yellow-300', icon: <Clock size={11} /> },
+  partial_booked: { classes: 'text-orange-900 bg-orange-100 border border-orange-300', icon: <Clock size={11} /> },
+  partial_paid: { classes: 'text-orange-900 bg-orange-100 border border-orange-300', icon: <Clock size={11} /> },
   confirmed: { classes: 'text-red-700 bg-red-50 border border-red-200', icon: <AlertCircle size={11} /> },
-  sold: { classes: 'text-slate-700 bg-slate-100 border border-slate-300', icon: <XCircle size={11} /> },
+  sold: { classes: 'text-red-700 bg-red-50 border border-red-200', icon: <XCircle size={11} /> },
   pending: { classes: 'text-sky-800 bg-sky-50 border border-sky-200', icon: <Clock size={11} /> },
   approved: { classes: 'text-emerald-700 bg-emerald-50 border border-emerald-200', icon: <CheckCircle size={11} /> },
   rejected: { classes: 'text-red-700 bg-red-50 border border-red-200', icon: <XCircle size={11} /> },

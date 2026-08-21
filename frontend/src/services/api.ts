@@ -286,5 +286,107 @@ export const api = {
       }
       return await res.json();
     }
+  },
+
+  // Projects API (PostgreSQL backed)
+  projects: {
+    list: async () => {
+      const res = await fetch(`${API_BASE_URL}/projects`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to fetch projects');
+      }
+      return await res.json();
+    },
+
+    create: async (payload: {
+      code: string;
+      name: string;
+      description?: string;
+      address_line_1?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+      total_area_sqft?: number;
+      total_plots?: number;
+      default_price_per_sqft?: number;
+      default_token_amount?: number;
+      image_url?: string;
+      blueprint_url?: string;
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/projects`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to create project');
+      }
+      return await res.json();
+    }
+  },
+
+  // Plots API (PostgreSQL backed)
+  plots: {
+    list: async (projectId?: string, statusFilter?: string) => {
+      const params = new URLSearchParams();
+      if (projectId) params.append('project_id', projectId);
+      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
+
+      const res = await fetch(`${API_BASE_URL}/plots?${params.toString()}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to fetch plots');
+      }
+      return await res.json();
+    },
+
+    uploadCsv: async (file: File, projectId?: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (projectId) formData.append('project_id', projectId);
+
+      const res = await fetch(`${API_BASE_URL}/plots/upload-csv`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to upload CSV');
+      }
+      return await res.json();
+    },
+
+    updateStatus: async (plotId: string, payload: {
+      status: string;
+      token_amount?: number;
+      token_expiry?: string;
+      amount_paid?: number;
+      balance_amount?: number;
+      balance_due_date?: string;
+      customer_id?: string;
+      customer_name?: string;
+      channel_partner_id?: string;
+      channel_partner_name?: string;
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/plots/${plotId}/status`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to update plot status');
+      }
+      return await res.json();
+    }
   }
 };

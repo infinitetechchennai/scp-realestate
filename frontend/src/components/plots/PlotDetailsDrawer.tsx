@@ -115,33 +115,39 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
             </div>
           </div>
 
-          {/* Token Advance Callout Note (Available Plots) */}
+          {/* Action Card For Available Plots */}
           {plot.status === 'available' && (
-            <div className="bg-white rounded-2xl p-4 border border-sky-200 shadow-2xs space-y-3">
+            <div className="bg-white rounded-2xl p-4 border border-emerald-200 shadow-2xs space-y-3">
               <div className="flex items-start gap-2.5">
-                <Sparkles size={16} className="text-sky-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-sky-950 leading-relaxed font-medium">
-                  <span className="font-bold text-blue-900">Token Advance Required:</span>{' '}
-                  <span className="font-black text-blue-900">{formatCurrencyFull(tokenAmt)}</span> to block this plot for 7 days.
+                <Sparkles size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-800 leading-relaxed font-medium">
+                  <span className="font-black text-emerald-800">Plot is Open & Available:</span>{' '}
+                  Customers and Channel Partners can hold with a token advance (7-day validity) or complete booking.
                 </div>
               </div>
 
-              {/* Start Booking Button */}
-              <button
-                type="button"
-                onClick={() => setShowBookingWizard(true)}
-                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] flex items-center justify-center gap-2"
-              >
-                <CheckCircle size={16} />
-                Start Booking
-              </button>
+              {/* Start Booking Button: For Customer / Channel Partner only */}
+              {user?.role !== 'super_admin' ? (
+                <button
+                  type="button"
+                  onClick={() => setShowBookingWizard(true)}
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] flex items-center justify-center gap-2"
+                >
+                  <CheckCircle size={16} />
+                  Start Booking
+                </button>
+              ) : (
+                <div className="w-full py-2.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold text-center">
+                  🛡️ Admin Oversight Mode (Auditing & Status View)
+                </div>
+              )}
             </div>
           )}
 
-          {/* Booking Info Card (For Token Booked / Confirmed / Sold Plots) */}
+          {/* Booking Info Card (For Token Booked / Partial Booked / Sold Plots) */}
           {plot.status !== 'available' && (
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Booking Information</h3>
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Booking & Financial Status</h3>
               <div className="space-y-2 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
                 {plot.customerName && (
                   <InfoRow icon={User} label="Customer" value={plot.customerName} />
@@ -149,103 +155,86 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
                 {plot.channelPartnerName && (
                   <InfoRow icon={Handshake} label="Channel Partner" value={plot.channelPartnerName} />
                 )}
-                {plot.tokenAmount && (
-                  <InfoRow icon={DollarSign} label="Token Amount" value={formatCurrencyFull(plot.tokenAmount)} />
+                {plot.tokenAmount !== undefined && plot.tokenAmount > 0 && (
+                  <InfoRow icon={DollarSign} label="Token Paid" value={formatCurrencyFull(plot.tokenAmount)} highlight="green" />
                 )}
-                {plot.tokenDate && (
-                  <InfoRow icon={Calendar} label="Token Date" value={plot.tokenDate} />
+                {plot.totalPaid !== undefined && plot.totalPaid > 0 && (
+                  <InfoRow icon={DollarSign} label="Total Paid" value={formatCurrencyFull(plot.totalPaid)} highlight="green" />
+                )}
+                {plot.balanceDue !== undefined && plot.balanceDue > 0 && (
+                  <InfoRow icon={DollarSign} label="Balance Due" value={formatCurrencyFull(plot.balanceDue)} highlight="red" />
                 )}
 
-                {/* Token Expiry Banner */}
+                {/* 1. Token Expiry Banner (Yellow - 7 Days) */}
                 {plot.status === 'token_booked' && plot.tokenExpiry && (
-                  <div className={`flex items-center gap-2.5 p-2.5 rounded-xl border mt-2 ${
+                  <div className={`flex items-center gap-2.5 p-3 rounded-xl border mt-2 ${
                     daysRemaining !== null && daysRemaining <= 2
                       ? 'bg-red-50 border-red-200 text-red-800'
-                      : 'bg-orange-50 border-orange-200 text-orange-800'
+                      : 'bg-yellow-50 border-yellow-300 text-yellow-900'
                   }`}>
-                    <Clock size={16} className="text-orange-500 flex-shrink-0" />
+                    <Clock size={18} className="text-yellow-600 flex-shrink-0" />
                     <div>
-                      <div className="text-[10px] font-bold">7-Day Token Expiry: <span className="font-black text-xs">{plot.tokenExpiry}</span></div>
+                      <div className="text-xs font-black">7-Day Token Hold: <span className="font-bold">{plot.tokenExpiry}</span></div>
                       {daysRemaining !== null && (
-                        <div className={`text-[10px] font-bold ${daysRemaining <= 2 ? 'text-red-600' : 'text-orange-600'}`}>
-                          {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'EXPIRED'}
+                        <div className={`text-[11px] font-bold ${daysRemaining <= 2 ? 'text-red-600 font-black' : 'text-yellow-800'}`}>
+                          ⏱ {daysRemaining > 0 ? `${daysRemaining} days left before auto-release to Green` : 'HOLD EXPIRED (Reverting to Green)'}
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Confirmed Balance Info */}
-                {plot.status === 'confirmed' && (
-                  <>
-                    {plot.confirmedDate && <InfoRow icon={Calendar} label="Confirmed Date" value={plot.confirmedDate} />}
-                    {plot.totalPaid !== undefined && (
-                      <InfoRow icon={DollarSign} label="Amount Paid" value={formatCurrencyFull(plot.totalPaid)} highlight="green" />
-                    )}
-                    {plot.balanceDue !== undefined && plot.balanceDue > 0 && (
-                      <InfoRow icon={DollarSign} label="Balance Due" value={formatCurrencyFull(plot.balanceDue)} highlight="red" />
-                    )}
-                    {plot.paymentDeadline && (
-                      <div className={`flex items-center gap-2.5 p-2.5 rounded-xl border mt-2 ${
-                        deadlineDays !== null && deadlineDays <= 15
-                          ? 'bg-red-50 border-red-200 text-red-800'
-                          : 'bg-sky-50 border-sky-200 text-blue-900'
-                      }`}>
-                        <AlertCircle size={16} className={deadlineDays !== null && deadlineDays <= 15 ? 'text-red-500' : 'text-sky-600'} />
-                        <div>
-                          <div className="text-[10px] font-bold">90-Day Deadline: <span className="font-black text-xs">{plot.paymentDeadline}</span></div>
-                          {deadlineDays !== null && (
-                            <div className={`text-[10px] font-bold ${deadlineDays <= 15 ? 'text-red-600' : 'text-sky-600'}`}>
-                              {deadlineDays > 0 ? `${deadlineDays} days remaining` : 'OVERDUE'}
-                            </div>
-                          )}
+                {/* 2. Partial Payment Due Date Banner (Orange - 90 Days) */}
+                {plot.status === 'partial_booked' && plot.paymentDeadline && (
+                  <div className={`flex items-center gap-2.5 p-3 rounded-xl border mt-2 ${
+                    deadlineDays !== null && deadlineDays <= 15
+                      ? 'bg-red-50 border-red-200 text-red-800'
+                      : 'bg-orange-50 border-orange-300 text-orange-950'
+                  }`}>
+                    <AlertCircle size={18} className="text-orange-600 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs font-black">90-Day Balance Due: <span className="font-bold">{plot.paymentDeadline}</span></div>
+                      {deadlineDays !== null && (
+                        <div className={`text-[11px] font-bold ${deadlineDays <= 15 ? 'text-red-600 font-black' : 'text-orange-800'}`}>
+                          📅 {deadlineDays > 0 ? `${deadlineDays} days remaining to pay balance` : 'PAYMENT OVERDUE (Reverting to Green)'}
                         </div>
-                      </div>
-                    )}
-                  </>
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                {/* Sold Banner */}
+                {/* 3. Sold Banner (Red - 100% Completed) */}
                 {plot.status === 'sold' && (
-                  <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl p-2.5 mt-2">
-                    <CheckCircle size={15} className="text-slate-600" />
-                    <span className="text-xs font-bold text-slate-700">Transaction Fully Completed & Registered</span>
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl p-3 mt-2">
+                    <CheckCircle size={18} className="text-red-600" />
+                    <div>
+                      <span className="text-xs font-black text-red-950 block">100% Paid & Registered</span>
+                      <span className="text-[10px] text-red-700 font-medium">Plot is fully sold out</span>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons for Booked / Confirmed plots */}
+              {/* Action Buttons */}
               <div className="pt-2">
-                {plot.status === 'token_booked' && (
+                {user?.role !== 'super_admin' && (plot.status === 'token_booked' || plot.status === 'partial_booked') && (
                   <button
                     type="button"
                     onClick={() => setShowBookingWizard(true)}
-                    className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors shadow-sm"
+                    className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md"
                   >
-                    Continue & Confirm Booking
+                    Pay Remaining Balance
                   </button>
                 )}
 
-                {plot.status === 'confirmed' && (
-                  user?.role === 'super_admin' ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowSoldConfirm(true)}
-                      className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-colors shadow-sm"
-                    >
-                      Mark as SOLD
-                    </button>
-                  ) : (
-                    <div className="w-full py-3 bg-red-50 text-red-800 border border-red-200 rounded-xl font-bold text-xs text-center uppercase tracking-wider">
-                      Booking Confirmed (Awaiting Final Payment)
-                    </div>
-                  )
-                )}
-
-                {plot.status === 'sold' && (
-                  <div className="w-full py-3 bg-slate-200 text-slate-600 rounded-xl font-bold text-xs text-center uppercase tracking-wider">
-                    Plot Sold Out
-                  </div>
+                {user?.role === 'super_admin' && plot.status !== 'sold' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSoldConfirm(true)}
+                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-colors shadow-sm"
+                  >
+                    Mark as SOLD OUT
+                  </button>
                 )}
               </div>
             </div>

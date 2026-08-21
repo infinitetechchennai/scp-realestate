@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Plot } from '../../types';
 import { usePlotStore } from '../../store/plotStore';
+import { useAuthStore } from '../../store/authStore';
 import { ExactCadInteractiveBlueprint } from './ExactCadInteractiveBlueprint';
 import { SurveyBlueprintDiagram } from './SurveyBlueprintDiagram';
 import { BookingWizard } from '../booking/BookingWizard';
 import { PlotDetailsDrawer } from './PlotDetailsDrawer';
-import { formatCurrencyFull, cn } from '../../utils/helpers';
+import { formatCurrencyFull, cn, getDaysRemaining } from '../../utils/helpers';
 import { Layers, CheckCircle2, RotateCcw, Search, User, Calendar, DollarSign, Handshake, Clock, Sparkles } from 'lucide-react';
 
 interface BlueprintLayoutViewProps {
@@ -25,9 +26,9 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
     blueprintPreset,
     tokenRequired,
     ratePerSqft,
-    useTownshipDataset,
-    useSurveyDataset,
   } = usePlotStore();
+
+  const { user } = useAuthStore();
 
   const plots = propPlots || storePlots;
 
@@ -56,7 +57,7 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
   const plotArea = currentPlot?.area || 1500;
   const currentRate = currentPlot?.pricePerSqft || ratePerSqft || 2500;
   const totalValue = currentPlot?.totalPrice || plotArea * currentRate;
-  const tokenAmount = currentPlot?.tokenRequired || tokenRequired || 100000;
+  const tokenAmount = currentPlot?.tokenRequired || tokenRequired || 10000;
   const isAvailable = currentPlot?.status === 'available';
 
   // Filtered plots for bottom grid
@@ -73,67 +74,32 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
     <div className="space-y-6 animate-fade-in">
       {/* ── TOP SECTION: Architectural Blueprint Header & Viewport ── */}
       <div className="space-y-3">
-        {/* Preset Switcher Header */}
+        {/* Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black text-slate-700 uppercase tracking-wider pl-2">Layout Blueprint:</span>
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={useTownshipDataset}
-                className={cn(
-                  'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
-                  blueprintPreset === 'township_184'
-                    ? 'bg-white text-slate-900 shadow-xs font-black'
-                    : 'text-slate-500 hover:text-slate-800'
-                )}
-              >
-                <Layers size={13} className={blueprintPreset === 'township_184' ? 'text-amber-600' : ''} />
-                Client CAD Blueprint (184 Plots)
-              </button>
-              <button
-                type="button"
-                onClick={useSurveyDataset}
-                className={cn(
-                  'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all',
-                  blueprintPreset === 'greens_16'
-                    ? 'bg-white text-slate-900 shadow-xs font-black'
-                    : 'text-slate-500 hover:text-slate-800'
-                )}
-              >
-                <Sparkles size={13} className={blueprintPreset === 'greens_16' ? 'text-amber-600' : ''} />
-                Greens Ventures (16 Plots)
-              </button>
+          <div className="flex items-center gap-2 pl-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
+              <Layers size={16} />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 tracking-wide">SCP Farm Layout — Architectural Master Plan</h3>
+              <p className="text-[10px] text-slate-400 font-medium">184 Interactive Residential Plots · 20ft Arterial Roads · Suramriver Boundary</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 pr-2">
             <span>
-              Total Units: <b className="text-slate-900 font-black">{plots.length}</b>
+              Total Units: <b className="text-slate-900 font-black">{plots.length} Plots</b>
             </span>
           </div>
         </div>
 
         {/* The Clickable Interactive Blueprint Diagram */}
-        {blueprintPreset === 'greens_16' ? (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-            <SurveyBlueprintDiagram
-              selectedPlotNumber={currentPlot?.plotNumber}
-              onSelectPlot={(pNum) => {
-                const found = plots.find((p) => p.plotNumber === pNum || p.plotNumber.endsWith(pNum.replace('P-', '')));
-                if (found) handleDiagramSelect(found);
-              }}
-              customImage={blueprintImage}
-            />
-          </div>
-        ) : (
-          <ExactCadInteractiveBlueprint
-            plots={plots}
-            selectedPlotNumber={currentPlot?.plotNumber}
-            onSelectPlot={handleDiagramSelect}
-            blueprintImageUrl={blueprintImage || '/blueprint.png'}
-          />
-        )}
+        <ExactCadInteractiveBlueprint
+          plots={plots}
+          selectedPlotNumber={currentPlot?.plotNumber}
+          onSelectPlot={handleDiagramSelect}
+          blueprintImageUrl={blueprintImage || '/blueprint.png'}
+        />
       </div>
 
       {/* ── BOTTOM SECTION: Split Pane (Plots Grid + Selection Details) ── */}
@@ -176,6 +142,8 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
             {filteredPlots.map((plot) => {
               const isSelected = currentPlot?.id === plot.id || currentPlot?.plotNumber === plot.plotNumber;
               const isPlotAvailable = plot.status === 'available';
+              const daysRemaining = plot.tokenExpiry ? getDaysRemaining(plot.tokenExpiry) : null;
+              const deadlineDays = plot.paymentDeadline ? getDaysRemaining(plot.paymentDeadline) : null;
 
               return (
                 <button
@@ -183,18 +151,22 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
                   type="button"
                   onClick={() => handleSelect(plot)}
                   className={cn(
-                    'flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-150 text-center min-h-[90px]',
+                    'flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-150 text-center min-h-[96px]',
                     isSelected
                       ? 'border-[#0284c7] bg-[#f0f9ff] ring-2 ring-[#0284c7]/20 shadow-xs scale-[1.02]'
                       : isPlotAvailable
-                      ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
-                      : 'border-slate-100 bg-slate-50/60 opacity-65 hover:opacity-90'
+                        ? 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/20'
+                        : plot.status === 'token_booked'
+                          ? 'border-yellow-300 bg-yellow-50/40 hover:border-yellow-400'
+                          : plot.status === 'partial_booked'
+                            ? 'border-orange-300 bg-orange-50/40 hover:border-orange-400'
+                            : 'border-red-200 bg-red-50/30 opacity-85 hover:opacity-100'
                   )}
                 >
                   <span
                     className={cn(
                       'text-xs font-black tracking-wide',
-                      isSelected ? 'text-[#0369a1]' : isPlotAvailable ? 'text-slate-900' : 'text-slate-600'
+                      isSelected ? 'text-[#0369a1]' : isPlotAvailable ? 'text-slate-900' : 'text-slate-700'
                     )}
                   >
                     {plot.plotNumber}
@@ -202,27 +174,53 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
                   <span
                     className={cn(
                       'text-[10px] font-bold mt-0.5',
-                      isSelected ? 'text-[#0284c7]' : isPlotAvailable ? 'text-emerald-700' : 'text-slate-400'
+                      isSelected ? 'text-[#0284c7]' : isPlotAvailable ? 'text-emerald-700' : 'text-slate-500'
                     )}
                   >
                     {plot.area} sq.ft
                   </span>
+
+                  {/* Status Pill */}
                   <span
                     className={cn(
-                      'text-[9px] font-extrabold uppercase tracking-wider mt-1 px-1.5 py-0.5 rounded',
+                      'text-[9px] font-extrabold uppercase tracking-wider mt-1 px-2 py-0.5 rounded-md border',
                       isPlotAvailable
-                        ? isSelected
-                          ? 'bg-[#0284c7]/10 text-[#0284c7]'
-                          : 'bg-emerald-50 text-emerald-700'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                         : plot.status === 'token_booked'
-                        ? 'bg-amber-50 text-amber-700'
-                        : plot.status === 'confirmed'
-                        ? 'bg-rose-50 text-rose-700'
-                        : 'bg-slate-200/70 text-slate-500'
+                          ? 'bg-yellow-100 text-yellow-900 border-yellow-300'
+                          : plot.status === 'partial_booked'
+                            ? 'bg-orange-100 text-orange-950 border-orange-300'
+                            : 'bg-red-50 text-red-800 border-red-200'
                     )}
                   >
-                    {plot.status.replace('_', ' ')}
+                    {plot.status === 'token_booked'
+                      ? 'TOKEN'
+                      : plot.status === 'partial_booked'
+                        ? 'PARTIAL'
+                        : plot.status === 'available'
+                          ? 'AVAILABLE'
+                          : 'SOLD OUT'}
                   </span>
+
+                  {/* 1. Token Expiry Countdown (7-Day Hold) */}
+                  {plot.status === 'token_booked' && (
+                    <span className={cn(
+                      "text-[9px] font-black mt-1 flex items-center gap-0.5",
+                      daysRemaining !== null && daysRemaining <= 2 ? "text-red-600 animate-pulse" : "text-yellow-800"
+                    )}>
+                      ⏱ {daysRemaining !== null ? (daysRemaining > 0 ? `${daysRemaining}d left` : 'Expired') : '7d left'}
+                    </span>
+                  )}
+
+                  {/* 2. Partial Payment Due Date Countdown (90-Day Deadline) */}
+                  {plot.status === 'partial_booked' && (
+                    <span className={cn(
+                      "text-[9px] font-black mt-1 flex items-center gap-0.5",
+                      deadlineDays !== null && deadlineDays <= 15 ? "text-red-600 animate-pulse" : "text-orange-900"
+                    )}>
+                      📅 {deadlineDays !== null ? (deadlineDays > 0 ? `${deadlineDays}d left` : 'Overdue') : '90d left'}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -249,10 +247,10 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
                     isAvailable
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       : currentPlot?.status === 'token_booked'
-                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                      : currentPlot?.status === 'confirmed'
-                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                      : 'bg-slate-100 text-slate-600'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : currentPlot?.status === 'confirmed'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-slate-100 text-slate-600'
                   )}
                 >
                   {currentPlot?.status?.replace('_', ' ')}
@@ -312,8 +310,8 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
               {isAvailable && (
                 <div className="bg-[#e0f2fe]/70 border border-[#bae6fd] rounded-xl p-3.5 mt-2">
                   <p className="text-xs text-[#0369a1] font-semibold leading-relaxed">
-                    <b className="font-black text-[#0c4a6e]">Note:</b> A token advance of{' '}
-                    <span className="font-black text-[#0c4a6e]">{formatCurrencyFull(tokenAmount)}</span> is required to
+                    <b className="font-black text-[#0c4a6e]">Note:</b> A minimum of{' '}
+                    <span className="font-black text-[#0c4a6e]">₹10,000</span> is required to
                     block this plot.
                   </p>
                 </div>
@@ -323,14 +321,20 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
             {/* Action Button */}
             <div className="pt-4">
               {isAvailable ? (
-                <button
-                  type="button"
-                  onClick={() => setBookingPlot(currentPlot)}
-                  className="w-full py-3.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] flex items-center justify-center gap-2"
-                >
-                  <CheckCircle2 size={16} />
-                  Proceed to Booking
-                </button>
+                user?.role === 'super_admin' ? (
+                  <div className="w-full py-3 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold text-center">
+                    🛡️ Admin Oversight Mode (Auditing & Status View)
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setBookingPlot(currentPlot)}
+                    className="w-full py-3.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 active:scale-[0.99] flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 size={16} />
+                    Proceed to Booking
+                  </button>
+                )
               ) : (
                 <button
                   disabled

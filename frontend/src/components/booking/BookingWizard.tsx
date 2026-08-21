@@ -37,7 +37,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
   const [continueAmount, setContinueAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
 
-  const { startBooking, confirmBooking } = usePlotStore();
+  const { startTokenBooking, startPartialBooking, confirmFullBooking } = usePlotStore();
   const { addBooking } = useBookingStore();
   const { addPayment } = usePaymentStore();
   const { addCustomer, customers } = useCustomerStore();
@@ -80,7 +80,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
     const customerName = existingCustomer?.name || customerForm.name;
 
     if (paymentOption === 'token') {
-      startBooking(plot.id, {
+      startTokenBooking(plot.id, {
         bookingId,
         customerId,
         customerName,
@@ -112,20 +112,34 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
       addNotification({
         id: `notif-${Date.now()}`,
         type: 'token_payment',
-        title: 'Token Payment Received',
-        message: `${customerName} paid ${formatCurrencyFull(amount)} token for Plot ${plot.plotNumber}.`,
+        title: 'Token Payment Received (7-Day Hold)',
+        message: `${customerName} paid ${formatCurrencyFull(amount)} token for Plot ${plot.plotNumber}. Valid for 7 days.`,
         isRead: false,
         createdAt: new Date().toISOString(),
         targetRoles: ['super_admin', 'channel_partner'],
       });
-      toast.success(`✓ Token booking created! Plot ${plot.plotNumber} is now Token Booked.`);
-    } else {
-      const isFullPay = paymentOption === 'full' || amount >= plot.totalPrice;
-      confirmBooking(plot.id, {
+
+      // Synchronize to PostgreSQL database
+      fetch('http://localhost:8000/api/v1/plots/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plotNumber: plot.plotNumber,
+          paymentType: 'token',
+          amount: amount,
+          customerName: customerName,
+          customerEmail: customerForm.email || user?.email || '',
+          customerPhone: customerForm.mobile || '',
+        }),
+      }).catch(() => {});
+
+      toast.success(`✓ Token advance received! Plot ${plot.plotNumber} is held for 7 days (Yellow).`);
+    } else if (paymentOption === 'continue') {
+      // Partial payment: Requires >= 50%
+      startPartialBooking(plot.id, {
         bookingId,
         customerId,
         customerName,
-        tokenAmount: plot.status === 'token_booked' ? (plot.tokenAmount || 0) : 50000,
         bookingDate: today,
         confirmedDate: today,
         paymentDeadline: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
@@ -141,14 +155,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
         customerId,
         customerName,
         bookingDate: today,
-        paymentType: isFullPay ? 'full' : 'continue',
+        paymentType: 'continue',
         status: 'confirmed',
-        tokenAmount: 50000,
         totalAmount: plot.totalPrice,
         amountPaid: amount,
         balanceAmount: Math.max(0, plot.totalPrice - amount),
-        tokenDate: today,
-        tokenExpiry: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
         confirmedDate: today,
         paymentDeadline: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
         payments: [],
@@ -156,13 +167,79 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
       addNotification({
         id: `notif-${Date.now()}`,
         type: 'booking_confirmed',
-        title: 'Booking Confirmed',
-        message: `Booking confirmed for Plot ${plot.plotNumber}. Customer: ${customerName}.`,
+        title: 'Partial Payment Received (90-Day Balance Due)',
+        message: `Partial payment of ${formatCurrencyFull(amount)} confirmed for Plot ${plot.plotNumber}. Balance due in 90 days.`,
         isRead: false,
         createdAt: new Date().toISOString(),
         targetRoles: ['super_admin', 'channel_partner'],
       });
-      toast.success(`✓ Booking confirmed! Plot ${plot.plotNumber} is now Confirmed.`);
+
+      // Synchronize to PostgreSQL database
+      fetch('http://localhost:8000/api/v1/plots/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plotNumber: plot.plotNumber,
+          paymentType: 'partial',
+          amount: amount,
+          customerName: customerName,
+          customerEmail: customerForm.email || user?.email || '',
+          customerPhone: customerForm.mobile || '',
+        }),
+      }).catch(() => {});
+
+      toast.success(`✓ Partial payment confirmed! Plot ${plot.plotNumber} is now Partial Booked (Orange - 90 Days Due Date).`);
+    } else {
+      // Full Payment: 100%
+      confirmFullBooking(plot.id, {
+        bookingId,
+        customerId,
+        customerName,
+        totalPaid: plot.totalPrice,
+        balanceDue: 0,
+      });
+      addBooking({
+        id: bookingId,
+        plotId: plot.id,
+        plotNumber: plot.plotNumber,
+        projectId: plot.projectId,
+        projectName: plot.projectName,
+        customerId,
+        customerName,
+        bookingDate: today,
+        paymentType: 'full',
+        status: 'sold',
+        totalAmount: plot.totalPrice,
+        amountPaid: plot.totalPrice,
+        balanceAmount: 0,
+        confirmedDate: today,
+        payments: [],
+      });
+      addNotification({
+        id: `notif-${Date.now()}`,
+        type: 'plot_sold',
+        title: 'Plot Full Payment — SOLD OUT',
+        message: `Plot ${plot.plotNumber} 100% paid and SOLD OUT to ${customerName}.`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        targetRoles: ['super_admin', 'channel_partner'],
+      });
+
+      // Synchronize to PostgreSQL database
+      fetch('http://localhost:8000/api/v1/plots/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plotNumber: plot.plotNumber,
+          paymentType: 'full',
+          amount: plot.totalPrice,
+          customerName: customerName,
+          customerEmail: customerForm.email || user?.email || '',
+          customerPhone: customerForm.mobile || '',
+        }),
+      }).catch(() => {});
+
+      toast.success(`✓ Full payment completed! Plot ${plot.plotNumber} is SOLD OUT (Red).`);
     }
 
     addPayment({
@@ -313,34 +390,54 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Payment Type</h3>
               <div className="space-y-3">
                 {[
-                  { id: 'token', label: 'Token Advance', desc: 'Pay a small token amount to temporarily hold the plot for 7 days' },
-                  { id: 'continue', label: 'Continue / Partial Payment', desc: 'Pay a partial amount and confirm the booking (90-day deadline)' },
-                  { id: 'full', label: 'Full Payment', desc: 'Pay the full plot amount and complete the booking immediately' },
+                  {
+                    id: 'token',
+                    label: 'Token Advance (7-Day Validity)',
+                    color: 'text-yellow-600',
+                    desc: 'Pay a small token advance to hold the plot for 7 days. If not converted within 7 days, plot automatically returns to Available (Green).',
+                  },
+                  {
+                    id: 'continue',
+                    label: 'Partial Payment (50% or above · 90-Day Due Date)',
+                    color: 'text-orange-600',
+                    desc: `Pay half or above (min ₹${(plot.totalPrice * 0.5).toLocaleString('en-IN')}). Balance due within 90 days. If unpaid, plot returns to Available (Green).`,
+                  },
+                  {
+                    id: 'full',
+                    label: 'Full Payment (Immediate Sold Out)',
+                    color: 'text-red-600',
+                    desc: `Pay 100% full amount (${formatCurrencyFull(plot.totalPrice)}) to complete the purchase and lock as Sold Out immediately.`,
+                  },
                 ].map(opt => (
                   <label key={opt.id} className={cn(
                     'flex gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all',
-                    paymentOption === opt.id ? 'border-sky-500 bg-sky-50/50' : 'border-slate-200 hover:border-sky-200'
+                    paymentOption === opt.id ? 'border-sky-500 bg-sky-50/50 ring-2 ring-sky-500/20' : 'border-slate-200 hover:border-sky-200'
                   )}>
                     <input type="radio" name="payment" value={opt.id} checked={paymentOption === opt.id}
-                      onChange={() => setPaymentOption(opt.id as PaymentOption)} className="mt-0.5 accent-blue-600" />
+                      onChange={() => {
+                        setPaymentOption(opt.id as PaymentOption);
+                        if (opt.id === 'continue') {
+                          setContinueAmount(String(plot.totalPrice * 0.5));
+                        }
+                      }} className="mt-0.5 accent-blue-600" />
                     <div>
-                      <div className="text-xs font-bold text-slate-900">{opt.label}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">{opt.desc}</div>
+                      <div className={cn("text-xs font-black", opt.color)}>{opt.label}</div>
+                      <div className="text-[11px] text-slate-500 mt-1 leading-relaxed">{opt.desc}</div>
                     </div>
                   </label>
                 ))}
               </div>
 
               {paymentOption === 'token' && (
-                <div className="space-y-3 pt-2">
-                  <p className="text-xs font-bold text-slate-700">Select Token Amount</p>
+                <div className="space-y-3 pt-2 bg-yellow-50/60 border border-yellow-200 rounded-xl p-4">
+                  <p className="text-xs font-black text-yellow-900">Select Token Amount</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[10000, 20000, 50000].map(amt => (
                       <button key={amt}
                         type="button"
-                        onClick={() => setTokenAmount(amt)}
+                        onClick={() => { setTokenAmount(amt); setCustomToken(''); }}
                         className={cn('py-2.5 border-2 rounded-xl text-xs font-bold transition-all',
-                          tokenAmount === amt ? 'border-blue-600 bg-blue-50 text-blue-900 font-black' : 'border-slate-200 text-slate-700 hover:border-sky-200'
+                          tokenAmount === amt && !customToken ? 'border-yellow-500 bg-yellow-100 text-yellow-950 font-black shadow-2xs' : 'border-yellow-200 bg-white text-slate-700 hover:border-yellow-300'
                         )}
                       >
                         ₹{(amt / 1000).toFixed(0)}K
@@ -348,28 +445,67 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                     ))}
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-500 font-bold block mb-1">Custom Token Amount</label>
+                    <label className="text-[11px] text-yellow-900 font-bold block mb-1">Custom Token Amount (₹)</label>
                     <input type="number" value={customToken}
                       onChange={e => { setCustomToken(e.target.value); setTokenAmount(parseFloat(e.target.value) || 0); }}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="Enter custom amount" />
+                      className="w-full border border-yellow-300 bg-white rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-yellow-500 outline-none" placeholder="Enter custom token amount" />
+                  </div>
+                  <div className="text-[11px] text-yellow-800 font-semibold flex items-center gap-1.5 pt-1">
+                    <span>⏱</span> <b>7-Day Expiry Clock</b> starts immediately upon payment confirmation.
                   </div>
                 </div>
               )}
 
               {paymentOption === 'continue' && (
-                <div>
-                  <label className="text-xs text-slate-700 font-bold block mb-1">Amount to Pay *</label>
+                <div className="space-y-3 pt-2 bg-orange-50/60 border border-orange-200 rounded-xl p-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs text-orange-950 font-black block">Partial Amount to Pay (Min 50%)</label>
+                    <span className="text-[11px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded-md">Min ₹{(plot.totalPrice * 0.5).toLocaleString('en-IN')}</span>
+                  </div>
+                  
+                  {/* Quick percentage buttons */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: '50% (Half)', val: plot.totalPrice * 0.5 },
+                      { label: '60%', val: plot.totalPrice * 0.6 },
+                      { label: '75%', val: plot.totalPrice * 0.75 },
+                    ].map(pct => (
+                      <button key={pct.label}
+                        type="button"
+                        onClick={() => setContinueAmount(String(pct.val))}
+                        className={cn('py-2 border-2 rounded-xl text-xs font-bold transition-all',
+                          parseFloat(continueAmount) === pct.val ? 'border-orange-500 bg-orange-100 text-orange-950 font-black shadow-2xs' : 'border-orange-200 bg-white text-slate-700 hover:border-orange-300'
+                        )}
+                      >
+                        {pct.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <input type="number" value={continueAmount}
                     onChange={e => setContinueAmount(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
-                    placeholder={`Enter amount (max ₹${plot.totalPrice.toLocaleString('en-IN')})`} />
+                    className="w-full border border-orange-300 bg-white rounded-xl px-3.5 py-2.5 text-xs font-bold focus:border-orange-500 outline-none"
+                    placeholder={`Enter amount (min ₹${(plot.totalPrice * 0.5).toLocaleString('en-IN')})`} />
+
+                  {parseFloat(continueAmount) < (plot.totalPrice * 0.5) && (
+                    <p className="text-[11px] font-bold text-red-600">
+                      ⚠️ Amount must be at least 50% (₹{(plot.totalPrice * 0.5).toLocaleString('en-IN')})
+                    </p>
+                  )}
+
+                  <div className="text-[11px] text-orange-900 font-semibold flex items-center gap-1.5 pt-1">
+                    <span>📅</span> <b>90-Day Balance Deadline</b> set for remaining ₹{Math.max(0, plot.totalPrice - (parseFloat(continueAmount) || 0)).toLocaleString('en-IN')}.
+                  </div>
                 </div>
               )}
 
               {paymentOption === 'full' && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex justify-between items-center">
-                  <span className="text-xs text-emerald-800 font-bold">Full Plot Amount</span>
-                  <span className="text-lg font-black text-emerald-800">{formatCurrencyFull(plot.totalPrice)}</span>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex justify-between items-center">
+                  <div>
+                    <span className="text-xs text-red-950 font-black block">100% Full Payment</span>
+                    <span className="text-[11px] text-red-700">Permanent deed allocation & SOLD OUT status</span>
+                  </div>
+                  <span className="text-lg font-black text-red-900">{formatCurrencyFull(plot.totalPrice)}</span>
                 </div>
               )}
             </div>

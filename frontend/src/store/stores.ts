@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { Booking, Customer, ChannelPartner, Payment, Notification, AppSettings } from '../types';
-import { mockBookings, mockCustomers, mockChannelPartners, mockPayments, mockNotifications, defaultSettings } from '../data/mockData';
+import { defaultSettings } from '../data/mockData';
 
-// ── Bookings Store ────────────────────────────────────────
+// ── Bookings Store (In-Memory Only, No LocalStorage) ────────
 interface BookingState {
   bookings: Booking[];
   addBooking: (booking: Booking) => void;
@@ -12,21 +11,16 @@ interface BookingState {
   resetBookings: () => void;
 }
 
-export const useBookingStore = create<BookingState>()(
-  persist(
-    (set, get) => ({
-      bookings: mockBookings,
-      addBooking: (booking) => set((s) => ({ bookings: [booking, ...s.bookings] })),
-      updateBooking: (id, updates) =>
-        set((s) => ({ bookings: s.bookings.map((b) => (b.id === id ? { ...b, ...updates } : b)) })),
-      getBookingById: (id) => get().bookings.find((b) => b.id === id),
-      resetBookings: () => set({ bookings: mockBookings }),
-    }),
-    { name: 'booking-store' }
-  )
-);
+export const useBookingStore = create<BookingState>((set, get) => ({
+  bookings: [],
+  addBooking: (booking) => set((s) => ({ bookings: [booking, ...s.bookings] })),
+  updateBooking: (id, updates) =>
+    set((s) => ({ bookings: s.bookings.map((b) => (b.id === id ? { ...b, ...updates } : b)) })),
+  getBookingById: (id) => get().bookings.find((b) => b.id === id),
+  resetBookings: () => set({ bookings: [] }),
+}));
 
-// ── Customer Store ────────────────────────────────────────
+// ── Customer Store (In-Memory Only, No LocalStorage) ────────
 interface CustomerState {
   customers: Customer[];
   addCustomer: (customer: Customer) => void;
@@ -34,20 +28,15 @@ interface CustomerState {
   resetCustomers: () => void;
 }
 
-export const useCustomerStore = create<CustomerState>()(
-  persist(
-    (set) => ({
-      customers: mockCustomers,
-      addCustomer: (customer) => set((s) => ({ customers: [customer, ...s.customers] })),
-      updateCustomer: (id, updates) =>
-        set((s) => ({ customers: s.customers.map((c) => (c.id === id ? { ...c, ...updates } : c)) })),
-      resetCustomers: () => set({ customers: mockCustomers }),
-    }),
-    { name: 'customer-store' }
-  )
-);
+export const useCustomerStore = create<CustomerState>((set) => ({
+  customers: [],
+  addCustomer: (customer) => set((s) => ({ customers: [customer, ...s.customers] })),
+  updateCustomer: (id, updates) =>
+    set((s) => ({ customers: s.customers.map((c) => (c.id === id ? { ...c, ...updates } : c)) })),
+  resetCustomers: () => set({ customers: [] }),
+}));
 
-// ── Channel Partner Store ─────────────────────────────────
+// ── Channel Partner Store (In-Memory Only, No LocalStorage) ──
 interface ChannelPartnerState {
   channelPartners: ChannelPartner[];
   addChannelPartner: (cp: ChannelPartner) => void;
@@ -58,44 +47,34 @@ interface ChannelPartnerState {
   resetChannelPartners: () => void;
 }
 
-export const useChannelPartnerStore = create<ChannelPartnerState>()(
-  persist(
-    (set) => ({
-      channelPartners: mockChannelPartners,
-      addChannelPartner: (cp) => set((s) => ({ channelPartners: [cp, ...s.channelPartners.filter(p => p.id !== cp.id)] })),
-      updateChannelPartner: (id, updates) =>
-        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, ...updates } : c)) })),
-      approveChannelPartner: (id) =>
-        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'approved', rejectionReason: undefined } : c)) })),
-      rejectChannelPartner: (id, reason) =>
-        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'rejected', rejectionReason: reason || 'Incomplete KYC documentation' } : c)) })),
-      suspendChannelPartner: (id) =>
-        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'suspended' } : c)) })),
-      resetChannelPartners: () => set({ channelPartners: mockChannelPartners }),
-    }),
-    { name: 'cp-store' }
-  )
-);
+export const useChannelPartnerStore = create<ChannelPartnerState>((set) => ({
+  channelPartners: [],
+  addChannelPartner: (cp) => set((s) => ({ channelPartners: [cp, ...s.channelPartners.filter(p => p.id !== cp.id)] })),
+  updateChannelPartner: (id, updates) =>
+    set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, ...updates } : c)) })),
+  approveChannelPartner: (id) =>
+    set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'approved', rejectionReason: undefined } : c)) })),
+  rejectChannelPartner: (id, reason) =>
+    set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'rejected', rejectionReason: reason || 'Incomplete KYC documentation' } : c)) })),
+  suspendChannelPartner: (id) =>
+    set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'suspended' } : c)) })),
+  resetChannelPartners: () => set({ channelPartners: [] }),
+}));
 
-// ── Payment Store ─────────────────────────────────────────
+// ── Payment Store (In-Memory Only, No LocalStorage) ─────────
 interface PaymentState {
   payments: Payment[];
   addPayment: (payment: Payment) => void;
   resetPayments: () => void;
 }
 
-export const usePaymentStore = create<PaymentState>()(
-  persist(
-    (set) => ({
-      payments: mockPayments,
-      addPayment: (payment) => set((s) => ({ payments: [payment, ...s.payments] })),
-      resetPayments: () => set({ payments: mockPayments }),
-    }),
-    { name: 'payment-store' }
-  )
-);
+export const usePaymentStore = create<PaymentState>((set) => ({
+  payments: [],
+  addPayment: (payment) => set((s) => ({ payments: [payment, ...s.payments] })),
+  resetPayments: () => set({ payments: [] }),
+}));
 
-// ── Notification Store ────────────────────────────────────
+// ── Notification Store (In-Memory Only, No LocalStorage) ────
 interface NotificationState {
   notifications: Notification[];
   addNotification: (n: Notification) => void;
@@ -104,35 +83,25 @@ interface NotificationState {
   resetNotifications: () => void;
 }
 
-export const useNotificationStore = create<NotificationState>()(
-  persist(
-    (set) => ({
-      notifications: mockNotifications,
-      addNotification: (n) => set((s) => ({ notifications: [n, ...s.notifications] })),
-      markRead: (id) =>
-        set((s) => ({ notifications: s.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)) })),
-      markAllRead: () =>
-        set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, isRead: true })) })),
-      resetNotifications: () => set({ notifications: mockNotifications }),
-    }),
-    { name: 'notification-store' }
-  )
-);
+export const useNotificationStore = create<NotificationState>((set) => ({
+  notifications: [],
+  addNotification: (n) => set((s) => ({ notifications: [n, ...s.notifications] })),
+  markRead: (id) =>
+    set((s) => ({ notifications: s.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)) })),
+  markAllRead: () =>
+    set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, isRead: true })) })),
+  resetNotifications: () => set({ notifications: [] }),
+}));
 
-// ── Settings Store ────────────────────────────────────────
+// ── Settings Store (In-Memory Only, No LocalStorage) ────────
 interface SettingsState {
   settings: AppSettings;
   updateSettings: (updates: Partial<AppSettings>) => void;
   resetSettings: () => void;
 }
 
-export const useSettingsStore = create<SettingsState>()(
-  persist(
-    (set) => ({
-      settings: defaultSettings,
-      updateSettings: (updates) => set((s) => ({ settings: { ...s.settings, ...updates } })),
-      resetSettings: () => set({ settings: defaultSettings }),
-    }),
-    { name: 'settings-store' }
-  )
-);
+export const useSettingsStore = create<SettingsState>((set) => ({
+  settings: defaultSettings,
+  updateSettings: (updates) => set((s) => ({ settings: { ...s.settings, ...updates } })),
+  resetSettings: () => set({ settings: defaultSettings }),
+}));

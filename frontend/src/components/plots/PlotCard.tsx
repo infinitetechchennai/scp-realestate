@@ -14,65 +14,66 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot, onClick, compact = fal
   const deadlineDays = plot.paymentDeadline ? getDaysRemaining(plot.paymentDeadline) : null;
 
   const statusClass = {
-    available: 'plot-available',
-    token_booked: 'plot-token',
-    confirmed: 'plot-confirmed',
-    sold: 'plot-sold',
+    available: 'plot-available border-emerald-300 bg-emerald-50/40 text-emerald-950',
+    token_booked: 'plot-token border-yellow-400 bg-yellow-50 text-yellow-950',
+    partial_booked: 'plot-partial border-orange-400 bg-orange-50 text-orange-950',
+    confirmed: 'plot-confirmed border-red-300 bg-red-50 text-red-950',
+    sold: 'plot-sold border-red-300 bg-red-50 text-red-950',
   }[plot.status] || 'plot-available';
 
   return (
     <div
-      className={cn('plot-card rounded-lg p-2 select-none', statusClass, compact ? 'min-h-[72px]' : 'min-h-[90px]')}
+      className={cn('plot-card rounded-xl p-2.5 select-none border-2 transition-all cursor-pointer shadow-2xs hover:shadow-xs', statusClass, compact ? 'min-h-[72px]' : 'min-h-[92px]')}
       onClick={() => onClick(plot)}
       title={`${plot.plotNumber} - ${plot.area} sq.ft`}
     >
-      <div className="font-bold text-[11px] leading-tight">{plot.plotNumber}</div>
-      <div className="text-[10px] mt-0.5 font-medium opacity-80">
+      <div className="font-black text-xs leading-tight">{plot.plotNumber}</div>
+      <div className="text-[10px] mt-0.5 font-bold opacity-80">
         {plot.area} sq.ft
       </div>
 
       {plot.status === 'available' && (
         <>
-          <div className="flex items-center gap-0.5 mt-1">
-            <CheckCircle size={9} />
-            <span className="text-[10px] font-semibold">Available</span>
+          <div className="flex items-center gap-0.5 mt-1 text-emerald-700">
+            <CheckCircle size={10} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Available</span>
           </div>
-          <div className="text-[10px] mt-0.5 font-bold opacity-90">{formatCurrency(plot.totalPrice)}</div>
+          <div className="text-[10px] mt-0.5 font-bold text-slate-700">{formatCurrency(plot.totalPrice)}</div>
         </>
       )}
 
       {plot.status === 'token_booked' && (
         <>
-          <div className="flex items-center gap-0.5 mt-1">
-            <Clock size={9} />
-            <span className="text-[10px] font-semibold">Token Paid</span>
+          <div className="flex items-center gap-0.5 mt-1 text-yellow-800">
+            <Clock size={10} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Token</span>
           </div>
           {daysRemaining !== null && (
-            <div className="text-[10px] mt-0.5 font-bold">
+            <div className="text-[10px] mt-0.5 font-bold text-yellow-900">
               {daysRemaining > 0 ? `${daysRemaining}d left` : 'Expired'}
             </div>
           )}
         </>
       )}
 
-      {plot.status === 'confirmed' && (
+      {plot.status === 'partial_booked' && (
         <>
-          <div className="flex items-center gap-0.5 mt-1">
-            <Clock size={9} />
-            <span className="text-[10px] font-semibold">Confirmed</span>
+          <div className="flex items-center gap-0.5 mt-1 text-orange-800">
+            <Clock size={10} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Partial</span>
           </div>
           {deadlineDays !== null && (
-            <div className="text-[10px] mt-0.5 font-bold">
+            <div className="text-[10px] mt-0.5 font-bold text-orange-900">
               {deadlineDays > 0 ? `${deadlineDays}d left` : 'Overdue'}
             </div>
           )}
         </>
       )}
 
-      {plot.status === 'sold' && (
-        <div className="flex items-center gap-0.5 mt-1">
-          <XCircle size={9} />
-          <span className="text-[10px] font-bold">SOLD</span>
+      {(plot.status === 'sold' || plot.status === 'confirmed') && (
+        <div className="flex items-center gap-0.5 mt-1.5 text-red-700">
+          <XCircle size={10} />
+          <span className="text-[10px] font-black uppercase tracking-wider">SOLD OUT</span>
         </div>
       )}
     </div>

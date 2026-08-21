@@ -15,6 +15,15 @@ from app.schemas.customer import (
     CustomerListItem,
     CustomerDetail,
 )
+from app.schemas.project import (
+    ProjectCreateRequest,
+    ProjectResponse,
+)
+from app.schemas.plot import (
+    PlotCreateRequest,
+    PlotResponse,
+    PlotStatusUpdateRequest,
+)
 
 __all__ = [
     "LoginRequest",
@@ -28,4 +37,9 @@ __all__ = [
     "CustomerCreateRequest",
     "CustomerListItem",
     "CustomerDetail",
+    "ProjectCreateRequest",
+    "ProjectResponse",
+    "PlotCreateRequest",
+    "PlotResponse",
+    "PlotStatusUpdateRequest",
 ]

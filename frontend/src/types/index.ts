@@ -4,13 +4,13 @@
 
 export type UserRole = 'super_admin' | 'channel_partner' | 'customer';
 
-export type PlotStatus = 'available' | 'token_booked' | 'confirmed' | 'sold';
+export type PlotStatus = 'available' | 'token_booked' | 'partial_booked' | 'confirmed' | 'sold';
 
 export type PlotFacing = 'North' | 'South' | 'East' | 'West' | 'North-East' | 'North-West' | 'South-East' | 'South-West';
 
-export type BookingStatus = 'token_paid' | 'confirmed' | 'sold' | 'expired' | 'cancelled';
+export type BookingStatus = 'token_paid' | 'partial_paid' | 'confirmed' | 'sold' | 'expired' | 'cancelled';
 
-export type PaymentType = 'registration_fee' | 'token_advance' | 'continue_payment' | 'full_payment' | 'balance_payment';
+export type PaymentType = 'registration_fee' | 'token_advance' | 'partial_payment' | 'continue_payment' | 'full_payment' | 'balance_payment';
 
 export type PaymentMethod = 'upi' | 'bank_transfer' | 'cash' | 'card' | 'cheque' | 'other';
 
@@ -167,12 +167,12 @@ export interface Booking {
   bookingDate: string;
   paymentType: 'token' | 'continue' | 'full';
   status: BookingStatus;
-  tokenAmount: number;
+  tokenAmount?: number;
   totalAmount: number;
   amountPaid: number;
   balanceAmount: number;
-  tokenDate: string;
-  tokenExpiry: string;
+  tokenDate?: string;
+  tokenExpiry?: string;
   confirmedDate?: string;
   paymentDeadline?: string;
   soldDate?: string;

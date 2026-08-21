@@ -29,11 +29,14 @@ export function getDaysRemaining(dateStr: string): number {
 
 export function getStatusColor(status: string): string {
   switch (status) {
-    case 'available': return 'text-green-700 bg-green-100 border-green-300';
-    case 'token_booked': return 'text-orange-700 bg-orange-100 border-orange-300';
-    case 'confirmed': return 'text-red-700 bg-red-100 border-red-300';
-    case 'sold': return 'text-gray-700 bg-gray-200 border-gray-400';
-    default: return 'text-gray-600 bg-gray-100 border-gray-300';
+    case 'available': return 'text-emerald-700 bg-emerald-100 border-emerald-300';
+    case 'token_booked':
+    case 'token_paid': return 'text-yellow-800 bg-yellow-100 border-yellow-400';
+    case 'partial_booked':
+    case 'partial_paid': return 'text-orange-800 bg-orange-100 border-orange-400';
+    case 'confirmed':
+    case 'sold': return 'text-red-700 bg-red-100 border-red-300';
+    default: return 'text-slate-600 bg-slate-100 border-slate-300';
   }
 }
 
@@ -41,9 +44,11 @@ export function getStatusLabel(status: string): string {
   switch (status) {
     case 'available': return 'Available';
     case 'token_booked': return 'Token Booked';
+    case 'token_paid': return 'Token Advance';
+    case 'partial_booked': return 'Partial Payment';
+    case 'partial_paid': return 'Partial Paid';
     case 'confirmed': return 'Confirmed';
-    case 'sold': return 'Sold';
-    case 'token_paid': return 'Token Paid';
+    case 'sold': return 'Sold Out';
     case 'cancelled': return 'Cancelled';
     case 'expired': return 'Expired';
     case 'pending': return 'Pending';

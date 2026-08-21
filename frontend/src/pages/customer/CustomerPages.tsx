@@ -9,6 +9,7 @@ import { Plot } from '../../types';
 import { Search, MapPin, DollarSign, Clock, CreditCard, FolderOpen, Bell, User } from 'lucide-react';
 import { formatCurrencyFull, getDaysRemaining } from '../../utils/helpers';
 import { mockProjects, mockDocuments } from '../../data/mockData';
+import { api } from '../../services/api';
 import toast from 'react-hot-toast';
 
 export const CustomerDashboard: React.FC = () => {
@@ -89,23 +90,43 @@ export const CustomerDashboard: React.FC = () => {
 };
 
 export const CustomerPlots: React.FC = () => {
-  const { plots } = usePlotStore();
+  const { plots, fetchPlots } = usePlotStore();
+  const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
+
+  React.useEffect(() => {
+    fetchPlots();
+  }, []);
 
   return (
     <div className="space-y-4 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">Interactive Master Layout & Available Plots</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">
-          Explore approved township land plot layout diagram — click any plot to inspect dimensions, pricing, and reservation options
-        </p>
+        <h1 className="text-2xl font-black text-slate-900">Browse Available Plots</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Explore the interactive CAD master blueprint, schematic matrix, and survey drawings</p>
       </div>
 
-      <PlotMap plots={plots} />
+      <PlotMap plots={plots} onPlotClick={(p) => setSelectedPlot(p)} />
+
+      <PlotDetailsDrawer plot={selectedPlot} onClose={() => setSelectedPlot(null)} />
     </div>
   );
 };
 
 export const CustomerProjects: React.FC = () => {
+  const [projects, setProjects] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchLive = async () => {
+      try {
+        const res = await api.projects.list();
+        if (res && res.length > 0) setProjects(res);
+        else setProjects(mockProjects);
+      } catch {
+        setProjects(mockProjects);
+      }
+    };
+    fetchLive();
+  }, []);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -114,7 +135,7 @@ export const CustomerProjects: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {mockProjects.map(proj => (
+        {projects.map(proj => (
           <div key={proj.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
             <div className="h-44 bg-slate-900 relative overflow-hidden">
               {proj.imageUrl && <img src={proj.imageUrl} alt={proj.name} className="w-full h-full object-cover opacity-75" />}

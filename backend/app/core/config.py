@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 
@@ -10,23 +10,24 @@ ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     # Application & Security Config
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "Seven Circle Property API"
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str
+    SECRET_KEY: str = "generate-a-strong-random-secret-key-here-minimum-32-chars"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # PostgreSQL Database Connection
-    POSTGRES_SERVER: str
+    POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "1234"
+    POSTGRES_DB: str = "scp_realestate"
     DB_SCHEMA: str = "app"
 
-    DATABASE_URL: str
-    SYNC_DATABASE_URL: str
+    DATABASE_URL: Optional[str] = None
+    DATABASE_ASYNC_URL: Optional[str] = None
+    SYNC_DATABASE_URL: Optional[str] = None
 
     # CORS
     BACKEND_CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://localhost:3000"]

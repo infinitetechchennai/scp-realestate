@@ -85,38 +85,39 @@ export const ExactCadInteractiveBlueprint: React.FC<ExactCadInteractiveBlueprint
     switch (status) {
       case 'available':
         return {
-          fill: showUnderlayImage ? 'rgba(16, 185, 129, 0.28)' : 'rgba(16, 185, 129, 0.22)',
+          fill: showUnderlayImage ? 'rgba(16, 185, 129, 0.32)' : 'rgba(16, 185, 129, 0.25)',
           stroke: '#059669',
           strokeWidth: 1.2,
           textColor: '#065f46',
         };
       case 'token_booked':
         return {
-          fill: showUnderlayImage ? 'rgba(245, 158, 11, 0.38)' : 'rgba(245, 158, 11, 0.30)',
-          stroke: '#d97706',
+          fill: showUnderlayImage ? 'rgba(250, 204, 21, 0.48)' : 'rgba(250, 204, 21, 0.38)',
+          stroke: '#ca8a04',
           strokeWidth: 1.2,
-          textColor: '#92400e',
+          textColor: '#854d0e',
+        };
+      case 'partial_booked':
+        return {
+          fill: showUnderlayImage ? 'rgba(249, 115, 22, 0.45)' : 'rgba(249, 115, 22, 0.35)',
+          stroke: '#ea580c',
+          strokeWidth: 1.2,
+          textColor: '#9a3412',
         };
       case 'confirmed':
-        return {
-          fill: showUnderlayImage ? 'rgba(244, 63, 94, 0.32)' : 'rgba(244, 63, 94, 0.24)',
-          stroke: '#e11d48',
-          strokeWidth: 1.2,
-          textColor: '#9f1239',
-        };
       case 'sold':
         return {
-          fill: showUnderlayImage ? 'rgba(148, 163, 184, 0.42)' : 'rgba(148, 163, 184, 0.32)',
-          stroke: '#64748b',
+          fill: showUnderlayImage ? 'rgba(239, 68, 68, 0.45)' : 'rgba(239, 68, 68, 0.35)',
+          stroke: '#dc2626',
           strokeWidth: 1.2,
-          textColor: '#475569',
+          textColor: '#991b1b',
         };
       default:
         return {
-          fill: 'rgba(241, 245, 249, 0.4)',
-          stroke: '#94a3b8',
+          fill: 'rgba(16, 185, 129, 0.25)',
+          stroke: '#059669',
           strokeWidth: 1,
-          textColor: '#334155',
+          textColor: '#065f46',
         };
     }
   };

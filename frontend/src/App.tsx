@@ -64,6 +64,16 @@ const RootRedirect: React.FC = () => {
 };
 
 function App() {
+  React.useEffect(() => {
+    // Purge all legacy plot, booking, and mock caches from localStorage (keeping only active auth tokens)
+    const allowedAuthKeys = new Set(['access_token', 'refresh_token', 'auth-store']);
+    Object.keys(localStorage).forEach((key) => {
+      if (!allowedAuthKeys.has(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+  }, []);
+
   return (
     <BrowserRouter>
       <Toaster
