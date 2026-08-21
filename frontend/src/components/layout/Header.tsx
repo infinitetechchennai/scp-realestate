@@ -18,7 +18,6 @@ const routeLabels: Record<string, string[]> = {
   '/admin/channel-partners': ['Admin', 'Channel Partners'],
   '/admin/payments': ['Admin', 'Payments'],
   '/admin/reports': ['Admin', 'Reports'],
-  '/admin/documents': ['Admin', 'Documents'],
   '/admin/notifications': ['Admin', 'Notifications'],
   '/admin/audit-logs': ['Admin', 'Audit Logs'],
   '/admin/settings': ['Admin', 'Settings'],

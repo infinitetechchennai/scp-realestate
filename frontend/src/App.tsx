@@ -93,7 +93,6 @@ function App() {
           <Route path="channel-partners" element={<AdminChannelPartners />} />
           <Route path="payments" element={<AdminPayments />} />
           <Route path="reports" element={<AdminReports />} />
-          <Route path="documents" element={<AdminDocuments />} />
           <Route path="notifications" element={<AdminNotifications />} />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="settings" element={<AdminSettings />} />

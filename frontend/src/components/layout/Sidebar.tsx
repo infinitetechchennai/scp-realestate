@@ -26,7 +26,6 @@ const adminNav: NavItem[] = [
   { label: 'Channel Partners', icon: Handshake, to: '/admin/channel-partners' },
   { label: 'Payments', icon: CreditCard, to: '/admin/payments' },
   { label: 'Reports', icon: FileBarChart, to: '/admin/reports' },
-  { label: 'Documents', icon: FolderOpen, to: '/admin/documents' },
   { label: 'Notifications', icon: Bell, to: '/admin/notifications' },
   { label: 'Audit Logs', icon: ClipboardList, to: '/admin/audit-logs' },
   { label: 'Settings', icon: Settings, to: '/admin/settings' },

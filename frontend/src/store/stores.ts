@@ -53,7 +53,7 @@ interface ChannelPartnerState {
   addChannelPartner: (cp: ChannelPartner) => void;
   updateChannelPartner: (id: string, updates: Partial<ChannelPartner>) => void;
   approveChannelPartner: (id: string) => void;
-  rejectChannelPartner: (id: string) => void;
+  rejectChannelPartner: (id: string, reason?: string) => void;
   suspendChannelPartner: (id: string) => void;
   resetChannelPartners: () => void;
 }
@@ -62,13 +62,13 @@ export const useChannelPartnerStore = create<ChannelPartnerState>()(
   persist(
     (set) => ({
       channelPartners: mockChannelPartners,
-      addChannelPartner: (cp) => set((s) => ({ channelPartners: [cp, ...s.channelPartners] })),
+      addChannelPartner: (cp) => set((s) => ({ channelPartners: [cp, ...s.channelPartners.filter(p => p.id !== cp.id)] })),
       updateChannelPartner: (id, updates) =>
         set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, ...updates } : c)) })),
       approveChannelPartner: (id) =>
-        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'approved' } : c)) })),
-      rejectChannelPartner: (id) =>
-        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'rejected' } : c)) })),
+        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'approved', rejectionReason: undefined } : c)) })),
+      rejectChannelPartner: (id, reason) =>
+        set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'rejected', rejectionReason: reason || 'Incomplete KYC documentation' } : c)) })),
       suspendChannelPartner: (id) =>
         set((s) => ({ channelPartners: s.channelPartners.map((c) => (c.id === id ? { ...c, status: 'suspended' } : c)) })),
       resetChannelPartners: () => set({ channelPartners: mockChannelPartners }),
