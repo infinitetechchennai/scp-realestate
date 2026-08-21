@@ -10,57 +10,20 @@ import { formatCurrencyFull, generateId } from '../../utils/helpers';
 import { mockProjects, mockDocuments } from '../../data/mockData';
 import toast from 'react-hot-toast';
 
+import { PlotMap } from '../../components/plots/PlotMap';
+
 export const ChannelPlots: React.FC = () => {
   const { plots } = usePlotStore();
-  const [search, setSearch] = useState('');
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
-
-  const available = plots.filter(p => p.status === 'available');
-  const filtered = available.filter(p => !search || p.plotNumber.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-black text-slate-900">Available Plots for Sale</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">{available.length} plots ready for booking and client presentation</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Interactive CAD blueprint, matrix grid, and architectural survey drawings for client presentations</p>
       </div>
 
-      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 max-w-sm shadow-2xs focus-within:border-sky-500">
-        <Search size={15} className="text-slate-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search plot number..."
-          className="outline-none text-xs text-slate-800 bg-transparent flex-1 placeholder:text-slate-400" />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filtered.map(p => (
-          <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between hover:border-sky-300 transition-all">
-            <div>
-              <div className="flex justify-between items-start mb-2">
-                <span className="font-black text-slate-900 text-base">{p.plotNumber}</span>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Available</span>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">{p.projectName}</p>
-              <div className="mt-3 space-y-1 text-xs text-slate-600">
-                <div className="flex justify-between"><span className="text-slate-400 font-medium">Area:</span><span className="font-bold">{p.area} sq.ft</span></div>
-                <div className="flex justify-between"><span className="text-slate-400 font-medium">Facing:</span><span className="font-bold">{p.facing}</span></div>
-                <div className="flex justify-between"><span className="text-slate-400 font-medium">Road:</span><span className="font-bold">{p.roadWidth}</span></div>
-              </div>
-            </div>
-            <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Price</span>
-                <span className="font-black text-blue-900 text-sm">{formatCurrencyFull(p.totalPrice)}</span>
-              </div>
-              <button
-                onClick={() => setSelectedPlot(p)}
-                className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors shadow-2xs"
-              >
-                Book
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <PlotMap plots={plots} onPlotClick={(p) => setSelectedPlot(p)} />
 
       <PlotDetailsDrawer plot={selectedPlot} onClose={() => setSelectedPlot(null)} />
     </div>

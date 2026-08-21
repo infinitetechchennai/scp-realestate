@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import { Plot, PlotStatus } from '../../types';
 import { PlotCard } from './PlotCard';
 import { BlueprintLayoutView } from './BlueprintLayoutView';
+import { OriginalBlueprintViewer } from './OriginalBlueprintViewer';
 import { usePlotStore } from '../../store/plotStore';
-import { ZoomIn, ZoomOut, RotateCcw, Search, Map, Grid, Layers } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Search, Map, Grid, Layers, FileText } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 
 interface PlotMapProps {
@@ -13,25 +14,30 @@ interface PlotMapProps {
 
 const statusOptions: { value: PlotStatus | 'all'; label: string; color: string }[] = [
   { value: 'all', label: 'All Plots', color: 'bg-slate-400' },
-  { value: 'available', label: 'Available', color: 'bg-emerald-500' },
-  { value: 'token_booked', label: 'Token Booked', color: 'bg-orange-500' },
-  { value: 'confirmed', label: 'Confirmed', color: 'bg-red-500' },
-  { value: 'sold', label: 'Sold', color: 'bg-slate-500' },
+  { value: 'available', label: 'Available (Green)', color: 'bg-emerald-500' },
+  { value: 'token_booked', label: 'Token Advance (Yellow)', color: 'bg-yellow-400' },
+  { value: 'partial_booked', label: 'Partial Payment (Orange)', color: 'bg-orange-500' },
+  { value: 'sold', label: 'Sold Out (Red)', color: 'bg-red-500' },
 ];
 
 export const PlotMap: React.FC<PlotMapProps> = ({ plots, onPlotClick }) => {
-  const { layoutMode, setLayoutMode } = usePlotStore();
+  const { layoutMode, setLayoutMode, checkAndReleaseExpiredPlots } = usePlotStore();
   const [zoom, setZoom] = useState(1);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<PlotStatus | 'all'>('all');
   const [filterFacing, setFilterFacing] = useState('all');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Auto-check expired plots on mount
+  React.useEffect(() => {
+    checkAndReleaseExpiredPlots();
+  }, []);
+
   const facings = ['all', ...Array.from(new Set(plots.map((p) => p.facing)))];
 
   const filteredPlots = plots.filter((p) => {
     const matchSearch = !search || p.plotNumber.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === 'all' || p.status === filterStatus;
+    const matchStatus = filterStatus === 'all' || p.status === filterStatus || (filterStatus === 'sold' && p.status === 'confirmed');
     const matchFacing = filterFacing === 'all' || p.facing === filterFacing;
     return matchSearch && matchStatus && matchFacing;
   });
@@ -43,8 +49,8 @@ export const PlotMap: React.FC<PlotMapProps> = ({ plots, onPlotClick }) => {
     total: plots.length,
     available: plots.filter((p) => p.status === 'available').length,
     token: plots.filter((p) => p.status === 'token_booked').length,
-    confirmed: plots.filter((p) => p.status === 'confirmed').length,
-    sold: plots.filter((p) => p.status === 'sold').length,
+    partial: plots.filter((p) => p.status === 'partial_booked').length,
+    sold: plots.filter((p) => p.status === 'sold' || p.status === 'confirmed').length,
   };
 
   const isFiltered = (plot: Plot) => filteredPlots.some((fp) => fp.id === plot.id);
@@ -80,18 +86,40 @@ export const PlotMap: React.FC<PlotMapProps> = ({ plots, onPlotClick }) => {
             <Grid size={14} className={layoutMode === 'grid' ? 'text-blue-600' : ''} />
             Schematic Grid
           </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('original')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all',
+              layoutMode === 'original'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-500 hover:text-slate-800'
+            )}
+          >
+            <FileText size={14} className={layoutMode === 'original' ? 'text-blue-600' : ''} />
+            Original Blueprint (PDF / Image)
+          </button>
         </div>
 
         <div className="flex items-center gap-3 text-xs">
           <span className="text-slate-500 font-medium">
-            Active Layout: <b className="text-slate-900 font-bold">{layoutMode === 'blueprint' ? 'Survey Blueprint' : 'Master Matrix'}</b>
+            Active View:{' '}
+            <b className="text-slate-900 font-bold">
+              {layoutMode === 'blueprint'
+                ? 'Interactive Blueprint'
+                : layoutMode === 'original'
+                ? 'Original CAD Document'
+                : 'Schematic Grid'}
+            </b>
           </span>
         </div>
       </div>
 
-      {/* Render Blueprint View or Grid View */}
+      {/* Render Blueprint View, Original Document View, or Grid View */}
       {layoutMode === 'blueprint' ? (
         <BlueprintLayoutView plots={plots} />
+      ) : layoutMode === 'original' ? (
+        <OriginalBlueprintViewer />
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Controls Bar */}
@@ -170,14 +198,14 @@ export const PlotMap: React.FC<PlotMapProps> = ({ plots, onPlotClick }) => {
             <span className="flex items-center gap-1.5 text-emerald-800 font-semibold">
               <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>Available: <b>{counts.available}</b>
             </span>
-            <span className="flex items-center gap-1.5 text-orange-800 font-semibold">
-              <span className="w-2.5 h-2.5 bg-orange-500 rounded-full"></span>Token Booked: <b>{counts.token}</b>
+            <span className="flex items-center gap-1.5 text-yellow-900 font-semibold">
+              <span className="w-2.5 h-2.5 bg-yellow-400 rounded-full"></span>Token Advance: <b>{counts.token}</b>
+            </span>
+            <span className="flex items-center gap-1.5 text-orange-950 font-semibold">
+              <span className="w-2.5 h-2.5 bg-orange-500 rounded-full"></span>Partial Payment: <b>{counts.partial}</b>
             </span>
             <span className="flex items-center gap-1.5 text-red-800 font-semibold">
-              <span className="w-2.5 h-2.5 bg-red-500 rounded-full"></span>Confirmed: <b>{counts.confirmed}</b>
-            </span>
-            <span className="flex items-center gap-1.5 text-slate-600 font-semibold">
-              <span className="w-2.5 h-2.5 bg-slate-400 rounded-full"></span>Sold: <b>{counts.sold}</b>
+              <span className="w-2.5 h-2.5 bg-red-500 rounded-full"></span>Sold Out: <b>{counts.sold}</b>
             </span>
           </div>
 

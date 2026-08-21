@@ -7,7 +7,7 @@ function mkDate(d: Date) {
 }
 
 // Authentic CAD dimension mapping matching the client's original survey blueprint
-const cadSurveyDimensions: Record<number, { dimensions: string; area: number; facing: PlotFacing; roadWidth: string }> = {
+export const cadSurveyDimensions: Record<number, { dimensions: string; area: number; facing: PlotFacing; roadWidth: string }> = {
   // Top Northern Boundary Plots (1 to 15)
   1: { dimensions: "119'-7\" x 186'-10\" x 180'-3\" x 119'-5\"", area: 2200, facing: 'South', roadWidth: "16' wide road" },
   2: { dimensions: "59'-6\" x 180'-3\" x 143'-9\" x 49'-3\"", area: 2050, facing: 'South', roadWidth: "16' wide road" },
