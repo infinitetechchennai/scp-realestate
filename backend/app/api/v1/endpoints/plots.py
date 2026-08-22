@@ -1,123 +1,324 @@
 import io
 import csv
-import uuid
-from datetime import datetime, timezone
-from typing import List, Optional, Any
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
+from datetime import datetime, timezone, timedelta
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body, Response
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
-
+from sqlalchemy import text
 from app.core.database import get_db
-from app.models.plot import Plot
-from app.models.project import Project
-from app.schemas.plot import PlotCreateRequest, PlotResponse, PlotStatusUpdateRequest
 
 router = APIRouter()
 
-
 async def release_expired_plots(db: AsyncSession):
-    """Auto-release expired 7-day token holds and overdue partial bookings back to Available"""
-    pass
+    """Auto-release expired 7-day token holds and 90-day overdue partial bookings back to Available (Green)"""
+    expire_tokens_sql = text("""
+        UPDATE app.plots
+        SET status = 'available',
+            token_amount = 0,
+            token_date = NULL,
+            token_expiry = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE status = 'token_booked' AND token_expiry < CURRENT_TIMESTAMP;
+    """)
+    expire_partials_sql = text("""
+        UPDATE app.plots
+        SET status = 'available',
+            amount_paid = 0,
+            balance_amount = 0,
+            balance_due_date = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE status = 'partial_booked' AND balance_due_date < CURRENT_TIMESTAMP;
+    """)
+    await db.execute(expire_tokens_sql)
+    await db.execute(expire_partials_sql)
+    await db.commit()
 
+@router.get("")
+@router.get("/")
+async def get_all_plots(db: AsyncSession = Depends(get_db)):
+    """Fetch all plots dynamically from PostgreSQL app.plots table after running auto-expiry check"""
+    await release_expired_plots(db)
+    
+    sql = text("""
+        SELECT 
+            id::text,
+            project_id::text,
+            plot_number as "plotNumber",
+            location,
+            area_sqft as area,
+            dimensions,
+            facing,
+            road_width_ft as "roadWidth",
+            price_per_sqft as "pricePerSqft",
+            total_price as "totalPrice",
+            token_required as "tokenRequired",
+            token_amount as "tokenAmount",
+            token_date as "tokenDate",
+            token_expiry as "tokenExpiry",
+            amount_paid as "amountPaid",
+            balance_amount as "balanceAmount",
+            balance_due_date as "balanceDueDate",
+            row_index as row,
+            col_index as col,
+            status,
+            created_at,
+            updated_at
+        FROM app.plots
+        ORDER BY 
+            CAST(SUBSTRING(plot_number FROM '[0-9]+') AS INTEGER) ASC,
+            plot_number ASC;
+    """)
+    result = await db.execute(sql)
+    rows = result.mappings().all()
+    return [dict(r) for r in rows]
 
-@router.get("", response_model=List[PlotResponse])
-async def get_all_plots(
-    project_id: Optional[uuid.UUID] = None,
-    status: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """
-    Fetch all plots dynamically from PostgreSQL app.plots table.
-    """
-    stmt = select(Plot).order_by(Plot.plot_number.asc())
-    if project_id:
-        stmt = stmt.where(Plot.project_id == project_id)
-    if status and isinstance(status, str) and status != "all":
-        stmt = stmt.where(Plot.status == status)
+@router.get("/export-csv")
+async def export_plots_csv(
+    project_id: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Export all columns from app.plots table in PostgreSQL"""
+    sql = text("""
+        SELECT 
+            id::text,
+            project_id::text,
+            plot_number,
+            location,
+            area_sqft,
+            dimensions,
+            facing,
+            road_width_ft,
+            price_per_sqft,
+            total_price,
+            token_required,
+            token_amount,
+            token_date,
+            token_expiry,
+            amount_paid,
+            balance_amount,
+            balance_due_date,
+            row_index,
+            col_index,
+            status,
+            created_at,
+            updated_at
+        FROM app.plots
+        ORDER BY 
+            CAST(SUBSTRING(plot_number FROM '[0-9]+') AS INTEGER) ASC,
+            plot_number ASC;
+    """)
+    result = await db.execute(sql)
+    rows = result.mappings().all()
 
-    result = await db.execute(stmt)
-    plots = result.scalars().all()
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow([
+        "ID",
+        "Project ID",
+        "Plot Number",
+        "Location",
+        "Area SqFt",
+        "Dimensions",
+        "Facing",
+        "Road Width",
+        "Price Per SqFt",
+        "Total Price",
+        "Token Required",
+        "Token Amount",
+        "Token Date",
+        "Token Expiry",
+        "Amount Paid",
+        "Balance Amount",
+        "Balance Due Date",
+        "Row Index",
+        "Col Index",
+        "Status",
+        "Created At",
+        "Updated At"
+    ])
 
-    items = []
-    for p in plots:
-        row_letter = p.plot_number[2] if len(p.plot_number) >= 3 else "A"
-        dim_str = p.dimensions or "30x50"
-        road_w = f"{int(p.road_width_ft)} ft" if p.road_width_ft else "20 ft"
+    for r in rows:
+        writer.writerow([
+            r["id"],
+            r["project_id"],
+            r["plot_number"],
+            r["location"] or "Main Highway Layout, Hyderabad",
+            int(r["area_sqft"]) if r["area_sqft"] and float(r["area_sqft"]).is_integer() else r["area_sqft"],
+            r["dimensions"] or "",
+            r["facing"] or "North",
+            r["road_width_ft"] or "20 ft",
+            int(r["price_per_sqft"]) if r["price_per_sqft"] and float(r["price_per_sqft"]).is_integer() else r["price_per_sqft"],
+            int(r["total_price"]) if r["total_price"] and float(r["total_price"]).is_integer() else r["total_price"],
+            int(r["token_required"]) if r["token_required"] and float(r["token_required"]).is_integer() else (r["token_required"] or 10000),
+            int(r["token_amount"]) if r["token_amount"] and float(r["token_amount"]).is_integer() else (r["token_amount"] or 0),
+            r["token_date"].isoformat() if r["token_date"] else "",
+            r["token_expiry"].isoformat() if r["token_expiry"] else "",
+            int(r["amount_paid"]) if r["amount_paid"] and float(r["amount_paid"]).is_integer() else (r["amount_paid"] or 0),
+            int(r["balance_amount"]) if r["balance_amount"] and float(r["balance_amount"]).is_integer() else (r["balance_amount"] or 0),
+            r["balance_due_date"].isoformat() if r["balance_due_date"] else "",
+            r["row_index"] if r["row_index"] is not None else "",
+            r["col_index"] if r["col_index"] is not None else "",
+            r["status"].replace("_", " ").title() if r["status"] else "Available",
+            r["created_at"].isoformat() if r["created_at"] else "",
+            r["updated_at"].isoformat() if r["updated_at"] else ""
+        ])
 
-        items.append(
-            PlotResponse(
-                id=p.id,
-                projectId=p.project_id,
-                plotNumber=p.plot_number,
-                projectName=p.project.name if p.project else "SCP Farm Layout (184 Plots)",
-                row=row_letter,
-                area=float(p.area_sqft),
-                facing=p.facing or "North",
-                roadWidth=road_w,
-                length=30.0,
-                breadth=50.0,
-                dimensions=dim_str,
-                pricePerSqft=float(p.price_per_sqft),
-                totalPrice=float(p.total_price),
-                status=p.status,
-                tokenAmount=float(p.token_required or 20000.0),
-                tokenDate=None,
-                tokenExpiry=None,
-                amountPaid=0.0,
-                balanceAmount=0.0,
-                balanceDueDate=None,
-                customerId=None,
-                customerName=None,
-                partnerId=None,
-                partnerName=None,
-            )
-        )
-    return items
+    csv_content = output.getvalue()
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=project_plots_all_columns.csv",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
 
+class BookingRequest(BaseModel):
+    plotNumber: str
+    paymentType: str  # 'token' | 'partial' | 'full'
+    amount: float
+    customerName: Optional[str] = "Customer"
+    customerEmail: Optional[str] = "customer@example.com"
+    customerPhone: Optional[str] = ""
+
+@router.post("/book")
+async def book_plot(req: BookingRequest, db: AsyncSession = Depends(get_db)):
+    """Process plot booking (Token Hold / 50%+ Partial Payment / Full Payment) with DB persistence"""
+    clean_pnum = req.plotNumber.upper() if req.plotNumber.upper().startswith("P-") else f"P-{req.plotNumber}"
+    res = await db.execute(
+        text("SELECT * FROM app.plots WHERE plot_number = :pnum"),
+        {"pnum": clean_pnum}
+    )
+    plot_row = res.mappings().first()
+
+    if not plot_row:
+        raise HTTPException(status_code=404, detail=f"Plot {clean_pnum} not found.")
+
+    now = datetime.now(timezone.utc)
+    total_price = float(plot_row["total_price"]) if plot_row["total_price"] else 0.0
+
+    if req.paymentType == "token":
+        status = "token_booked"
+        expiry_info = (now + timedelta(days=7)).isoformat()
+        await db.execute(text("""
+            UPDATE app.plots
+            SET status = :status,
+                token_amount = :amt,
+                token_date = :now,
+                token_expiry = :expiry,
+                updated_at = :now
+            WHERE plot_number = :pnum
+        """), {
+            "status": status,
+            "amt": req.amount,
+            "now": now,
+            "expiry": now + timedelta(days=7),
+            "pnum": clean_pnum
+        })
+    elif req.paymentType == "partial":
+        status = "partial_booked"
+        expiry_info = (now + timedelta(days=90)).isoformat()
+        balance = max(0.0, total_price - req.amount)
+        await db.execute(text("""
+            UPDATE app.plots
+            SET status = :status,
+                amount_paid = :amt,
+                balance_amount = :bal,
+                balance_due_date = :deadline,
+                updated_at = :now
+            WHERE plot_number = :pnum
+        """), {
+            "status": status,
+            "amt": req.amount,
+            "bal": balance,
+            "deadline": now + timedelta(days=90),
+            "now": now,
+            "pnum": clean_pnum
+        })
+    elif req.paymentType == "full":
+        status = "sold"
+        expiry_info = None
+        await db.execute(text("""
+            UPDATE app.plots
+            SET status = :status,
+                amount_paid = :amt,
+                balance_amount = 0.0,
+                balance_due_date = NULL,
+                updated_at = :now
+            WHERE plot_number = :pnum
+        """), {
+            "status": status,
+            "amt": req.amount,
+            "now": now,
+            "pnum": clean_pnum
+        })
+    else:
+        raise HTTPException(status_code=400, detail="Invalid payment type.")
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "plotNumber": clean_pnum,
+        "status": status,
+        "amountPaid": req.amount,
+        "balanceDue": max(0.0, total_price - req.amount),
+        "expiryDate": expiry_info
+    }
 
 @router.post("/upload-csv")
 async def upload_plot_csv(
-    file: UploadFile = File(...),
-    project_id: Optional[uuid.UUID] = Form(None),
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """
-    Parse CSV file and bulk upsert plots into PostgreSQL app.plots table.
-    """
-    # 1. Resolve or verify project
-    target_project_id = project_id
-    if not target_project_id:
-        stmt_p = select(Project).limit(1)
-        res_p = await db.execute(stmt_p)
-        first_proj = res_p.scalar_one_or_none()
-        if first_proj:
-            target_project_id = first_proj.id
-        else:
-            default_proj = Project(
-                id=uuid.UUID("c0000001-0000-0000-0000-000000000001"),
-                code="SCP-2026",
-                name="SCP Farm Layout (184 Plots)",
-                description="Master township cadastral development featuring 184 residential plots.",
-                address_line_1="Main Highway Layout, Hyderabad",
-                city="Hyderabad",
-                state="Telangana",
-                postal_code="500081",
-                country_code="IN",
-                total_plots=184,
-                default_price_per_sqft=2500.00,
-                default_token_amount=100000.00,
-                status="active",
-            )
-            db.add(default_proj)
-            await db.flush()
-            target_project_id = default_proj.id
+    file: Optional[UploadFile] = File(None),
+    csv_text: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db)
+):
+    """Parse uploaded CSV/Excel format and bulk upsert into app.plots in PostgreSQL scp db (Option B clean sync)"""
+    content = ""
+    if file:
+        file_bytes = await file.read()
+        content = file_bytes.decode("utf-8", errors="replace")
+    elif csv_text:
+        content = csv_text
+    else:
+        raise HTTPException(status_code=400, detail="No CSV file or text provided.")
 
-    # 2. Read and parse CSV contents
-    content = await file.read()
-    decoded = content.decode("utf-8-sig")
-    reader = csv.DictReader(io.StringIO(decoded))
+    f_obj = io.StringIO(content)
+    reader = csv.reader(f_obj)
+    raw_header = next(reader, None)
+    if not raw_header:
+        raise HTTPException(status_code=400, detail="CSV file is empty.")
 
-    plots_upserted = 0
+    header = [h.strip().lower().replace(" ", "").replace("_", "") for h in raw_header]
+
+    plot_idx = next((i for i, h in enumerate(header) if "plot" in h), 0)
+    size_idx = next((i for i, h in enumerate(header) if "size" in h or "area" in h or "sqft" in h), 1)
+    dim_idx = next((i for i, h in enumerate(header) if "dim" in h), -1)
+    facing_idx = next((i for i, h in enumerate(header) if "facing" in h), -1)
+    road_idx = next((i for i, h in enumerate(header) if "road" in h), -1)
+    price_idx = next((i for i, h in enumerate(header) if "price" in h or "rate" in h), -1)
+    total_idx = next((i for i, h in enumerate(header) if "total" in h), -1)
+    token_idx = next((i for i, h in enumerate(header) if "token" in h or "min" in h), -1)
+    status_idx = next((i for i, h in enumerate(header) if "status" in h), -1)
+    loc_idx = next((i for i, h in enumerate(header) if "loc" in h or "addr" in h or "city" in h), -1)
+
+    proj_res = await db.execute(text("""
+        SELECT 
+            id::text, 
+            name,
+            COALESCE(
+                NULLIF(CONCAT_WS(', ', NULLIF(address_line_1, ''), NULLIF(city, ''), NULLIF(state, '')), ''), 
+                'Hyderabad'
+            ) as location 
+        FROM app.projects 
+        ORDER BY created_at ASC 
+        LIMIT 1;
+    """))
+    proj_row = proj_res.mappings().first()
+    project_id = proj_row["id"] if proj_row else "c0000001-0000-0000-0000-000000000001"
+    proj_location = proj_row["location"] if proj_row else "Hyderabad"
+
+    # Option B SQL Upsert: When status is 'available', clear any previous booking amounts to 0/NULL
     upsert_sql = text("""
         INSERT INTO app.plots (
             project_id,
@@ -125,11 +326,18 @@ async def upload_plot_csv(
             location,
             area_sqft,
             dimensions,
-            price_per_sqft,
-            total_price,
             facing,
             road_width_ft,
+            price_per_sqft,
+            total_price,
+            token_required,
             status,
+            token_amount,
+            token_date,
+            token_expiry,
+            amount_paid,
+            balance_amount,
+            balance_due_date,
             updated_at
         ) VALUES (
             :project_id,
@@ -137,98 +345,133 @@ async def upload_plot_csv(
             :location,
             :area_sqft,
             :dimensions,
-            :price_per_sqft,
-            :total_price,
             :facing,
             :road_width_ft,
+            :price_per_sqft,
+            :total_price,
+            :token_required,
             :status,
+            :token_amount,
+            :token_date,
+            :token_expiry,
+            :amount_paid,
+            :balance_amount,
+            :balance_due_date,
             CURRENT_TIMESTAMP
         )
         ON CONFLICT (project_id, plot_number) DO UPDATE SET
             area_sqft = EXCLUDED.area_sqft,
+            dimensions = COALESCE(EXCLUDED.dimensions, app.plots.dimensions),
+            facing = COALESCE(EXCLUDED.facing, app.plots.facing),
+            road_width_ft = COALESCE(EXCLUDED.road_width_ft, app.plots.road_width_ft),
             price_per_sqft = EXCLUDED.price_per_sqft,
             total_price = EXCLUDED.total_price,
-            facing = EXCLUDED.facing,
-            road_width_ft = EXCLUDED.road_width_ft,
+            token_required = COALESCE(EXCLUDED.token_required, app.plots.token_required),
             status = EXCLUDED.status,
+            token_amount = CASE WHEN EXCLUDED.status = 'available' THEN 0.0 ELSE COALESCE(EXCLUDED.token_amount, app.plots.token_amount) END,
+            token_date = CASE WHEN EXCLUDED.status = 'available' THEN NULL ELSE app.plots.token_date END,
+            token_expiry = CASE WHEN EXCLUDED.status = 'available' THEN NULL ELSE app.plots.token_expiry END,
+            amount_paid = CASE WHEN EXCLUDED.status = 'available' THEN 0.0 ELSE COALESCE(EXCLUDED.amount_paid, app.plots.amount_paid) END,
+            balance_amount = CASE WHEN EXCLUDED.status = 'available' THEN 0.0 ELSE COALESCE(EXCLUDED.balance_amount, app.plots.balance_amount) END,
+            balance_due_date = CASE WHEN EXCLUDED.status = 'available' THEN NULL ELSE app.plots.balance_due_date END,
             updated_at = CURRENT_TIMESTAMP;
     """)
 
+    updated_count = 0
     for row in reader:
-        clean_row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
-        plot_num = clean_row.get("plot_number") or clean_row.get("plot_no") or clean_row.get("plot") or clean_row.get("plotno")
-        if not plot_num:
+        if len(row) < 2:
             continue
+
+        raw_num = row[plot_idx].strip() if len(row) > plot_idx else ""
+        if not raw_num:
+            continue
+        plot_number = raw_num.upper() if raw_num.upper().startswith("P-") else f"P-{raw_num}"
 
         try:
-            area = float(clean_row.get("area_sqft") or clean_row.get("area") or 1800)
-            rate = float(clean_row.get("price_per_sqft") or clean_row.get("rate") or 2500)
-            total = float(clean_row.get("total_price") or clean_row.get("total") or (area * rate))
-            facing = clean_row.get("facing") or "North"
-            road_num = 20.0
-            road_raw = clean_row.get("road_width_ft") or clean_row.get("road_width") or clean_row.get("road")
-            if road_raw:
-                try:
-                    road_num = float(''.join([c for c in road_raw if c.isdigit() or c == '.']))
-                except Exception:
-                    road_num = 20.0
-            plot_status = clean_row.get("status") or "available"
-        except (ValueError, TypeError):
-            continue
+            area = float(row[size_idx].strip()) if size_idx != -1 and len(row) > size_idx and row[size_idx].strip() else 1500.0
+        except ValueError:
+            area = 1500.0
 
-        await db.execute(
-            upsert_sql,
-            {
-                "project_id": target_project_id,
-                "plot_number": plot_num,
-                "location": "Main Highway Layout, Hyderabad",
-                "area_sqft": area,
-                "dimensions": "30x50",
-                "price_per_sqft": rate,
-                "total_price": total,
-                "facing": facing,
-                "road_width_ft": road_num,
-                "status": plot_status.lower(),
-            }
-        )
-        plots_upserted += 1
+        try:
+            rate = float(row[price_idx].strip()) if price_idx != -1 and len(row) > price_idx and row[price_idx].strip() else 2500.0
+        except ValueError:
+            rate = 2500.0
+
+        try:
+            total_price = float(row[total_idx].strip()) if total_idx != -1 and len(row) > total_idx and row[total_idx].strip() else (area * rate)
+        except ValueError:
+            total_price = area * rate
+
+        try:
+            token_req = float(row[token_idx].strip()) if token_idx != -1 and len(row) > token_idx and row[token_idx].strip() else 10000.0
+        except ValueError:
+            token_req = 10000.0
+
+        dimensions = row[dim_idx].strip() if dim_idx != -1 and len(row) > dim_idx and row[dim_idx].strip() else None
+        facing = row[facing_idx].strip() if facing_idx != -1 and len(row) > facing_idx and row[facing_idx].strip() else "North"
+        road_width = row[road_idx].strip() if road_idx != -1 and len(row) > road_idx and row[road_idx].strip() else "20 ft"
+
+        raw_status = row[status_idx].strip().lower() if status_idx != -1 and len(row) > status_idx else "available"
+        if "sold" in raw_status:
+            status = "sold"
+        elif "token" in raw_status:
+            status = "token_booked"
+        elif "partial" in raw_status:
+            status = "partial_booked"
+        elif "book" in raw_status or "confirm" in raw_status:
+            status = "confirmed"
+        else:
+            status = "available"
+
+        plot_location = row[loc_idx].strip() if loc_idx != -1 and len(row) > loc_idx and row[loc_idx].strip() else proj_location
+
+        await db.execute(upsert_sql, {
+            "project_id": project_id,
+            "plot_number": plot_number,
+            "location": plot_location,
+            "area_sqft": area,
+            "dimensions": dimensions,
+            "facing": facing,
+            "road_width_ft": road_width,
+            "price_per_sqft": rate,
+            "total_price": total_price,
+            "token_required": token_req,
+            "status": status,
+            "token_amount": 0.0 if status == 'available' else None,
+            "token_date": None,
+            "token_expiry": None,
+            "amount_paid": 0.0 if status == 'available' else None,
+            "balance_amount": 0.0 if status == 'available' else None,
+            "balance_due_date": None,
+        })
+        updated_count += 1
+
+    await db.execute(text("""
+        UPDATE app.projects
+        SET total_plots = (SELECT count(*) FROM app.plots WHERE project_id = :project_id),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :project_id;
+    """), {"project_id": project_id})
 
     await db.commit()
 
     return {
         "success": True,
-        "message": f"Successfully parsed and upserted {plots_upserted} plots in PostgreSQL.",
-        "project_id": target_project_id,
-        "plots_count": plots_upserted
+        "message": f"Successfully updated {updated_count} plots dynamically in PostgreSQL database.",
+        "updatedCount": updated_count
     }
 
-
-@router.patch("/{plot_id}/status")
-async def update_plot_status(
-    plot_id: uuid.UUID,
-    req: PlotStatusUpdateRequest,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """
-    Update status for a plot.
-    """
-    stmt = select(Plot).where(Plot.id == plot_id)
-    res = await db.execute(stmt)
-    plot = res.scalar_one_or_none()
-
-    if not plot:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plot not found"
-        )
-
-    plot.status = req.status
+@router.patch("/{plot_number}/status")
+async def update_single_plot_status(
+    plot_number: str,
+    status: str = Body(..., embed=True),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update single plot status in DB"""
+    p_num = plot_number.upper() if plot_number.upper().startswith("P-") else f"P-{plot_number}"
+    await db.execute(
+        text("UPDATE app.plots SET status = :status, updated_at = CURRENT_TIMESTAMP WHERE plot_number = :pnum"),
+        {"status": status, "pnum": p_num}
+    )
     await db.commit()
-    await db.refresh(plot)
-
-    return {
-        "success": True,
-        "plot_id": plot.id,
-        "plot_number": plot.plot_number,
-        "status": plot.status
-    }
+    return {"success": True, "plotNumber": p_num, "status": status}

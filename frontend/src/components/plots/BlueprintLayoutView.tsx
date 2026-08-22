@@ -57,7 +57,7 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
   const plotArea = currentPlot?.area || 1500;
   const currentRate = currentPlot?.pricePerSqft || ratePerSqft || 2500;
   const totalValue = currentPlot?.totalPrice || plotArea * currentRate;
-  const tokenAmount = currentPlot?.tokenRequired || tokenRequired || 10000;
+  const tokenAmount = (currentPlot?.tokenRequired && currentPlot.tokenRequired > 0) ? currentPlot.tokenRequired : 10000;
   const isAvailable = currentPlot?.status === 'available';
 
   // Filtered plots for bottom grid
@@ -311,7 +311,7 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
                 <div className="bg-[#e0f2fe]/70 border border-[#bae6fd] rounded-xl p-3.5 mt-2">
                   <p className="text-xs text-[#0369a1] font-semibold leading-relaxed">
                     <b className="font-black text-[#0c4a6e]">Note:</b> A minimum of{' '}
-                    <span className="font-black text-[#0c4a6e]">₹10,000</span> is required to
+                    <span className="font-black text-[#0c4a6e]">{formatCurrencyFull(tokenAmount)}</span> is required to
                     block this plot.
                   </p>
                 </div>
