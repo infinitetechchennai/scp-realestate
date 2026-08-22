@@ -21,6 +21,7 @@ class Project(Base):
     state: Mapped[str | None] = mapped_column(String(100), nullable=True)
     postal_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     country_code: Mapped[str] = mapped_column(String(2), default="IN", nullable=False)
+    total_area: Mapped[str | None] = mapped_column(String(50), nullable=True)
     total_area_sqft: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
     total_plots: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     default_price_per_sqft: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)

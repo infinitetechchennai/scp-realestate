@@ -48,8 +48,19 @@ export interface Project {
   name: string;
   code: string;
   location: string;
+  addressLine1?: string;
+  address_line_1?: string;
+  addressLine2?: string;
+  address_line_2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  postal_code?: string;
+  countryCode?: string;
+  country_code?: string;
   description: string;
   totalArea: string;
+  total_area_sqft?: number;
   totalPlots: number;
   availablePlots: number;
   tokenBookedPlots: number;
@@ -61,6 +72,7 @@ export interface Project {
   layoutUrl?: string;
   blueprintUrl?: string;
   tokenRequired?: number;
+  defaultTokenAmount?: number;
   defaultPricePerSqft?: number;
   createdAt: string;
 }
