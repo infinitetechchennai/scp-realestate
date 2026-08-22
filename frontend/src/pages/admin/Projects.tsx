@@ -732,7 +732,7 @@ export const AdminProjects: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {previewList.slice(0, 30).map((p) => (
+                  {previewList.map((p) => (
                     <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-3 font-bold text-slate-900">{p.plotNumber}</td>
                       <td className="p-3 text-slate-700">{p.area} sq.ft</td>

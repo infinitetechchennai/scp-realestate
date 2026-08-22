@@ -461,17 +461,119 @@ async def upload_plot_csv(
         "updatedCount": updated_count
     }
 
-@router.patch("/{plot_number}/status")
+class PlotStatusPayload(BaseModel):
+    status: str
+    token_amount: Optional[float] = None
+    token_expiry: Optional[str] = None
+    amount_paid: Optional[float] = None
+    balance_amount: Optional[float] = None
+    balance_due_date: Optional[str] = None
+    customer_name: Optional[str] = None
+    customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    channel_partner_name: Optional[str] = None
+
+@router.patch("/{identifier}/status")
+@router.put("/{identifier}/status")
 async def update_single_plot_status(
-    plot_number: str,
-    status: str = Body(..., embed=True),
+    identifier: str,
+    payload: PlotStatusPayload,
     db: AsyncSession = Depends(get_db)
 ):
-    """Update single plot status in DB"""
-    p_num = plot_number.upper() if plot_number.upper().startswith("P-") else f"P-{plot_number}"
-    await db.execute(
-        text("UPDATE app.plots SET status = :status, updated_at = CURRENT_TIMESTAMP WHERE plot_number = :pnum"),
-        {"status": status, "pnum": p_num}
-    )
+    """Update plot status, token amounts, expiry, and balance dues in PostgreSQL by UUID or plot_number"""
+    clean_ident = identifier.strip()
+    clean_pnum = clean_ident.upper() if clean_ident.upper().startswith("P-") else f"P-{clean_ident.upper()}"
+
+    # 1. Find plot
+    find_sql = text("""
+        SELECT id, plot_number, total_price, token_required 
+        FROM app.plots 
+        WHERE id::text = :ident OR UPPER(plot_number) = :pnum OR UPPER(plot_number) = :ident
+        LIMIT 1;
+    """)
+    res = await db.execute(find_sql, {"ident": clean_ident, "pnum": clean_pnum})
+    plot_row = res.mappings().first()
+
+    if not plot_row:
+        raise HTTPException(status_code=404, detail=f"Plot {identifier} not found in database.")
+
+    plot_id = plot_row["id"]
+    total_price = float(plot_row["total_price"] or 0.0)
+    token_req = float(plot_row["token_required"] or 10000.0)
+    now = datetime.now(timezone.utc)
+
+    stat = payload.status.lower()
+
+    if stat in ["token_booked", "token"]:
+        token_amt = payload.token_amount if payload.token_amount is not None else token_req
+        exp = (now + timedelta(days=7)) if not payload.token_expiry else datetime.fromisoformat(payload.token_expiry.replace("Z", "+00:00"))
+        await db.execute(text("""
+            UPDATE app.plots
+            SET status = 'token_booked',
+                token_amount = :token_amt,
+                token_date = :now,
+                token_expiry = :exp,
+                amount_paid = :token_amt,
+                balance_amount = :bal,
+                updated_at = :now
+            WHERE id = :pid;
+        """), {
+            "token_amt": token_amt,
+            "now": now,
+            "exp": exp,
+            "bal": max(0.0, total_price - token_amt),
+            "pid": plot_id
+        })
+    elif stat in ["partial_booked", "partial", "confirmed"]:
+        amt_paid = payload.amount_paid if payload.amount_paid is not None else (total_price * 0.5)
+        bal_due = payload.balance_amount if payload.balance_amount is not None else max(0.0, total_price - amt_paid)
+        deadline = (now + timedelta(days=90)) if not payload.balance_due_date else datetime.fromisoformat(payload.balance_due_date.replace("Z", "+00:00"))
+        await db.execute(text("""
+            UPDATE app.plots
+            SET status = 'partial_booked',
+                amount_paid = :amt_paid,
+                balance_amount = :bal_due,
+                balance_due_date = :deadline,
+                updated_at = :now
+            WHERE id = :pid;
+        """), {
+            "amt_paid": amt_paid,
+            "bal_due": bal_due,
+            "deadline": deadline,
+            "now": now,
+            "pid": plot_id
+        })
+    elif stat in ["sold", "full"]:
+        await db.execute(text("""
+            UPDATE app.plots
+            SET status = 'sold',
+                amount_paid = :total,
+                balance_amount = 0.0,
+                balance_due_date = NULL,
+                updated_at = :now
+            WHERE id = :pid;
+        """), {
+            "total": total_price,
+            "now": now,
+            "pid": plot_id
+        })
+    else:
+        # Available / release
+        await db.execute(text("""
+            UPDATE app.plots
+            SET status = 'available',
+                token_amount = 0.0,
+                token_date = NULL,
+                token_expiry = NULL,
+                amount_paid = 0.0,
+                balance_amount = 0.0,
+                balance_due_date = NULL,
+                updated_at = :now
+            WHERE id = :pid;
+        """), {
+            "now": now,
+            "pid": plot_id
+        })
+
     await db.commit()
-    return {"success": True, "plotNumber": p_num, "status": status}
+    return {"success": True, "plotNumber": plot_row["plot_number"], "status": stat}
