@@ -388,5 +388,66 @@ export const api = {
       }
       return await res.json();
     }
+  },
+
+  // Bookings API (PostgreSQL app.bookings)
+  bookings: {
+    list: async (channelPartnerId?: string, customerId?: string) => {
+      const params = new URLSearchParams();
+      if (channelPartnerId) params.append('channel_partner_id', channelPartnerId);
+      if (customerId) params.append('customer_id', customerId);
+
+      const res = await fetch(`${API_BASE_URL}/bookings?${params.toString()}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to fetch bookings');
+      }
+      return await res.json();
+    },
+
+    create: async (payload: {
+      plot_id: string;
+      customer_name?: string;
+      customer_phone?: string;
+      customer_email?: string;
+      customer_id?: string;
+      channel_partner_id?: string;
+      booking_type: 'token_advance' | 'partial_payment' | 'full_payment';
+      amount_paid: number;
+      payment_method?: string;
+      transaction_id?: string;
+      notes?: string;
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/bookings`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to create booking');
+      }
+      return await res.json();
+    }
+  },
+
+  // Payments API (PostgreSQL app.payments)
+  payments: {
+    list: async (customerId?: string, bookingId?: string) => {
+      const params = new URLSearchParams();
+      if (customerId) params.append('customer_id', customerId);
+      if (bookingId) params.append('booking_id', bookingId);
+
+      const res = await fetch(`${API_BASE_URL}/payments?${params.toString()}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to fetch payments');
+      }
+      return await res.json();
+    }
   }
 };

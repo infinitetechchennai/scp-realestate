@@ -87,6 +87,8 @@ export interface Plot {
   bookingId?: string;
   customerId?: string;
   customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   channelPartnerId?: string;
   channelPartnerName?: string;
   tokenAmount?: number;
@@ -253,6 +255,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: UserRole;
   avatar?: string;
 }

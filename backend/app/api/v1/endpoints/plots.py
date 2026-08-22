@@ -10,6 +10,7 @@ from sqlalchemy import select, text
 from app.core.database import get_db
 from app.models.plot import Plot
 from app.models.project import Project
+from app.models.booking import Booking
 from app.schemas.plot import PlotCreateRequest, PlotResponse, PlotStatusUpdateRequest
 
 router = APIRouter()
@@ -27,7 +28,7 @@ async def get_all_plots(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
-    Fetch all plots dynamically from PostgreSQL app.plots table.
+    Fetch all plots dynamically from PostgreSQL app.plots table with live booking data.
     """
     stmt = select(Plot).order_by(Plot.plot_number.asc())
     if project_id:
@@ -38,11 +39,55 @@ async def get_all_plots(
     result = await db.execute(stmt)
     plots = result.scalars().all()
 
+    # Fetch active bookings map keyed by plot_id
+    booking_stmt = (
+        select(Booking)
+        .where(Booking.status.in_(["token_paid", "partial_paid", "confirmed", "sold"]))
+        .order_by(Booking.created_at.desc())
+    )
+    b_res = await db.execute(booking_stmt)
+    active_bookings = b_res.scalars().all()
+    plot_booking_map = {}
+    for b in active_bookings:
+        if b.plot_id not in plot_booking_map:
+            plot_booking_map[b.plot_id] = b
+
     items = []
     for p in plots:
         row_letter = p.plot_number[2] if len(p.plot_number) >= 3 else "A"
         dim_str = p.dimensions or "30x50"
         road_w = f"{int(p.road_width_ft)} ft" if p.road_width_ft else "20 ft"
+
+        b = plot_booking_map.get(p.id)
+        c_name = None
+        c_email = None
+        c_phone = None
+        c_id = None
+        cp_name = None
+        cp_id = None
+        t_date = None
+        t_exp = None
+        b_due_date = None
+        amt_paid = 0.0
+        bal_amt = float(p.total_price)
+        tok_amt = float(p.token_required or 20000.0)
+
+        if b:
+            c_id = str(b.customer_id) if b.customer_id else None
+            if b.customer:
+                c_name = f"{b.customer.first_name} {b.customer.last_name or ''}".strip()
+                c_email = b.customer.email
+                c_phone = b.customer.phone
+            if b.channel_partner:
+                cp_id = str(b.channel_partner_id) if b.channel_partner_id else None
+                cp_name = b.channel_partner.company_name or f"{b.channel_partner.first_name} {b.channel_partner.last_name or ''}".strip()
+
+            t_date = b.token_paid_at.strftime("%Y-%m-%d") if b.token_paid_at else None
+            t_exp = b.token_expires_at.strftime("%Y-%m-%d") if b.token_expires_at else None
+            b_due_date = b.payment_deadline_at.strftime("%Y-%m-%d") if b.payment_deadline_at else None
+            amt_paid = float(b.amount_paid or 0.0)
+            bal_amt = float(b.balance_amount if b.balance_amount is not None else max(0, float(p.total_price) - amt_paid))
+            tok_amt = float(b.token_amount or tok_amt)
 
         items.append(
             PlotResponse(
@@ -60,16 +105,18 @@ async def get_all_plots(
                 pricePerSqft=float(p.price_per_sqft),
                 totalPrice=float(p.total_price),
                 status=p.status,
-                tokenAmount=float(p.token_required or 20000.0),
-                tokenDate=None,
-                tokenExpiry=None,
-                amountPaid=0.0,
-                balanceAmount=0.0,
-                balanceDueDate=None,
-                customerId=None,
-                customerName=None,
-                partnerId=None,
-                partnerName=None,
+                tokenAmount=tok_amt,
+                tokenDate=t_date,
+                tokenExpiry=t_exp,
+                amountPaid=amt_paid,
+                balanceAmount=bal_amt,
+                balanceDueDate=b_due_date,
+                customerId=c_id,
+                customerName=c_name,
+                customerEmail=c_email,
+                customerPhone=c_phone,
+                partnerId=cp_id,
+                partnerName=cp_name,
             )
         )
     return items
@@ -222,7 +269,11 @@ async def update_plot_status(
             detail="Plot not found"
         )
 
-    plot.status = req.status
+    db_status = req.status
+    if db_status == "partial_booked":
+        db_status = "confirmed"
+
+    plot.status = db_status
     await db.commit()
     await db.refresh(plot)
 

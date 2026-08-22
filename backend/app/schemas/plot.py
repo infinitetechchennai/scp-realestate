@@ -42,6 +42,8 @@ class PlotResponse(BaseModel):
     balanceDueDate: Optional[str] = None
     customerId: Optional[str] = None
     customerName: Optional[str] = None
+    customerEmail: Optional[str] = None
+    customerPhone: Optional[str] = None
     partnerId: Optional[str] = None
     partnerName: Optional[str] = None
 

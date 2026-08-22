@@ -9,6 +9,7 @@ import { formatCurrencyFull, generateId } from '../../utils/helpers';
 import { format, addDays } from 'date-fns';
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
+import { api } from '../../services/api';
 
 interface BookingWizardProps {
   plot: Plot;
@@ -27,68 +28,84 @@ type PaymentOption = 'token' | 'continue' | 'full';
 type PaymentMethod = 'upi' | 'bank_transfer' | 'cash' | 'card' | 'cheque' | 'other';
 
 export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) => {
-  const [step, setStep] = useState(1);
-  const [customerForm, setCustomerForm] = useState({
-    name: '', mobile: '', email: '', address: '', aadhar: '', pan: ''
-  });
-  const [paymentOption, setPaymentOption] = useState<PaymentOption>('token');
-  const [tokenAmount, setTokenAmount] = useState(20000);
-  const [customToken, setCustomToken] = useState('');
-  const [continueAmount, setContinueAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
-
+  const { user } = useAuthStore();
+  const { customers, addCustomer } = useCustomerStore();
   const { startTokenBooking, startPartialBooking, confirmFullBooking } = usePlotStore();
   const { addBooking } = useBookingStore();
   const { addPayment } = usePaymentStore();
-  const { addCustomer, customers } = useCustomerStore();
   const { addNotification } = useNotificationStore();
-  const { user } = useAuthStore();
 
-  const existingCustomer = customers.find(c => c.email === user?.email);
+  const isExistingBooking = plot.status !== 'available';
+  const amountPaidSoFar = plot.totalPaid || (plot.status === 'token_booked' ? (plot.tokenAmount || 20000) : 0);
+  const remainingDue = plot.balanceDue !== undefined && plot.balanceDue > 0 ? plot.balanceDue : Math.max(0, plot.totalPrice - amountPaidSoFar);
+
+  const existingCustomer = customers.find(c =>
+    (plot.customerId && c.id === plot.customerId) ||
+    (c.email && (c.email === plot.customerEmail || c.email === user?.email))
+  );
+
+  const [step, setStep] = useState(1);
+  const [customerForm, setCustomerForm] = useState({
+    name: plot.customerName || existingCustomer?.name || (user?.role === 'customer' ? user.name : '') || '',
+    mobile: plot.customerPhone || existingCustomer?.phone || (user?.role === 'customer' ? user.phone : '') || '',
+    email: plot.customerEmail || existingCustomer?.email || (user?.role === 'customer' ? user.email : '') || '',
+    address: existingCustomer?.address || '',
+    aadhar: existingCustomer?.aadhar || '',
+    pan: existingCustomer?.pan || ''
+  });
+  const [paymentOption, setPaymentOption] = useState<PaymentOption>(isExistingBooking ? 'full' : 'token');
+  const [tokenAmount, setTokenAmount] = useState(20000);
+  const [customToken, setCustomToken] = useState('');
+  const [continueAmount, setContinueAmount] = useState(isExistingBooking ? String(remainingDue) : '');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
 
   const getPaymentAmount = () => {
     if (paymentOption === 'token') return tokenAmount;
-    if (paymentOption === 'full') return plot.totalPrice;
+    if (paymentOption === 'full') return isExistingBooking ? remainingDue : plot.totalPrice;
     return parseFloat(continueAmount) || 0;
   };
 
   const handleConfirmPayment = () => {
-    const bookingId = generateId('book');
+    const bookingId = plot.bookingId || generateId('book');
     const paymentId = generateId('pay');
     const today = format(new Date(), 'yyyy-MM-dd');
     const amount = getPaymentAmount();
 
-    const customerId = existingCustomer?.id || generateId('cust');
-    if (!existingCustomer) {
+    const customerId = plot.customerId || existingCustomer?.id || generateId('cust');
+    const customerName = plot.customerName || existingCustomer?.name || customerForm.name;
+    const customerEmail = plot.customerEmail || existingCustomer?.email || customerForm.email || user?.email || '';
+    const customerPhone = plot.customerPhone || existingCustomer?.phone || customerForm.mobile || user?.phone || '';
+
+    if (!existingCustomer && !plot.customerId) {
       addCustomer({
         id: customerId,
-        name: customerForm.name,
-        email: customerForm.email,
-        phone: customerForm.mobile,
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
         address: customerForm.address,
         aadhar: customerForm.aadhar,
         pan: customerForm.pan,
         plotIds: [plot.id],
         bookingIds: [bookingId],
         totalPaid: amount,
-        totalBalance: plot.totalPrice - amount,
+        totalBalance: Math.max(0, plot.totalPrice - amount),
         status: 'active',
         createdAt: today,
       });
     }
-
-    const customerName = existingCustomer?.name || customerForm.name;
 
     if (paymentOption === 'token') {
       startTokenBooking(plot.id, {
         bookingId,
         customerId,
         customerName,
+        customerEmail,
+        customerPhone,
         tokenAmount: amount,
         tokenDate: today,
         tokenExpiry: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
         totalPaid: amount,
-        balanceDue: plot.totalPrice - amount,
+        balanceDue: Math.max(0, plot.totalPrice - amount),
       });
       addBooking({
         id: bookingId,
@@ -104,7 +121,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
         tokenAmount: amount,
         totalAmount: plot.totalPrice,
         amountPaid: amount,
-        balanceAmount: plot.totalPrice - amount,
+        balanceAmount: Math.max(0, plot.totalPrice - amount),
         tokenDate: today,
         tokenExpiry: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
         payments: [],
@@ -120,32 +137,48 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
       });
 
       // Synchronize to PostgreSQL database
-      fetch('http://localhost:8000/api/v1/plots/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plotNumber: plot.plotNumber,
-          paymentType: 'token',
-          amount: amount,
-          customerName: customerName,
-          customerEmail: customerForm.email || user?.email || '',
-          customerPhone: customerForm.mobile || '',
-        }),
-      }).catch(() => {});
+      api.bookings.create({
+        plot_id: plot.id,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        channel_partner_id: user?.role === 'channel_partner' ? user.id : undefined,
+        booking_type: 'token_advance',
+        amount_paid: amount,
+        payment_method: paymentMethod,
+      }).catch((e) => console.warn('Booking API sync error:', e));
 
       toast.success(`✓ Token advance received! Plot ${plot.plotNumber} is held for 7 days (Yellow).`);
     } else if (paymentOption === 'continue') {
-      // Partial payment: Requires >= 50%
-      startPartialBooking(plot.id, {
-        bookingId,
-        customerId,
-        customerName,
-        bookingDate: today,
-        confirmedDate: today,
-        paymentDeadline: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
-        totalPaid: amount,
-        balanceDue: Math.max(0, plot.totalPrice - amount),
-      });
+      const newTotalPaid = isExistingBooking ? (amountPaidSoFar + amount) : amount;
+      const newBalanceDue = Math.max(0, plot.totalPrice - newTotalPaid);
+      const isNowFullyPaid = newBalanceDue === 0;
+
+      if (isNowFullyPaid) {
+        confirmFullBooking(plot.id, {
+          bookingId,
+          customerId,
+          customerName,
+          customerEmail,
+          customerPhone,
+          totalPaid: plot.totalPrice,
+          balanceDue: 0,
+        });
+      } else {
+        startPartialBooking(plot.id, {
+          bookingId,
+          customerId,
+          customerName,
+          customerEmail,
+          customerPhone,
+          bookingDate: today,
+          confirmedDate: today,
+          paymentDeadline: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
+          totalPaid: newTotalPaid,
+          balanceDue: newBalanceDue,
+        });
+      }
+
       addBooking({
         id: bookingId,
         plotId: plot.id,
@@ -155,49 +188,55 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
         customerId,
         customerName,
         bookingDate: today,
-        paymentType: 'continue',
-        status: 'confirmed',
+        paymentType: isNowFullyPaid ? 'full' : 'continue',
+        status: isNowFullyPaid ? 'sold' : 'confirmed',
         totalAmount: plot.totalPrice,
-        amountPaid: amount,
-        balanceAmount: Math.max(0, plot.totalPrice - amount),
+        amountPaid: newTotalPaid,
+        balanceAmount: newBalanceDue,
         confirmedDate: today,
-        paymentDeadline: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
+        paymentDeadline: isNowFullyPaid ? undefined : format(addDays(new Date(), 90), 'yyyy-MM-dd'),
         payments: [],
       });
+
       addNotification({
         id: `notif-${Date.now()}`,
-        type: 'booking_confirmed',
-        title: 'Partial Payment Received (90-Day Balance Due)',
-        message: `Partial payment of ${formatCurrencyFull(amount)} confirmed for Plot ${plot.plotNumber}. Balance due in 90 days.`,
+        type: isNowFullyPaid ? 'plot_sold' : 'booking_confirmed',
+        title: isNowFullyPaid ? 'Plot Full Payment — SOLD OUT' : 'Balance Installment Received',
+        message: `${customerName} paid ${formatCurrencyFull(amount)} for Plot ${plot.plotNumber}. Remaining due: ${formatCurrencyFull(newBalanceDue)}.`,
         isRead: false,
         createdAt: new Date().toISOString(),
         targetRoles: ['super_admin', 'channel_partner'],
       });
 
       // Synchronize to PostgreSQL database
-      fetch('http://localhost:8000/api/v1/plots/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plotNumber: plot.plotNumber,
-          paymentType: 'partial',
-          amount: amount,
-          customerName: customerName,
-          customerEmail: customerForm.email || user?.email || '',
-          customerPhone: customerForm.mobile || '',
-        }),
-      }).catch(() => {});
+      api.bookings.create({
+        plot_id: plot.id,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        channel_partner_id: user?.role === 'channel_partner' ? user.id : undefined,
+        booking_type: isNowFullyPaid ? 'full_payment' : 'partial_payment',
+        amount_paid: amount,
+        payment_method: paymentMethod,
+      }).catch((e) => console.warn('Booking API sync error:', e));
 
-      toast.success(`✓ Partial payment confirmed! Plot ${plot.plotNumber} is now Partial Booked (Orange - 90 Days Due Date).`);
+      toast.success(isNowFullyPaid
+        ? `✓ Full payment completed! Plot ${plot.plotNumber} is SOLD OUT (Red).`
+        : `✓ Balance payment recorded! Remaining due: ${formatCurrencyFull(newBalanceDue)}.`
+      );
     } else {
-      // Full Payment: 100%
+      // Full Payment
+      const newTotalPaid = plot.totalPrice;
       confirmFullBooking(plot.id, {
         bookingId,
         customerId,
         customerName,
-        totalPaid: plot.totalPrice,
+        customerEmail,
+        customerPhone,
+        totalPaid: newTotalPaid,
         balanceDue: 0,
       });
+
       addBooking({
         id: bookingId,
         plotId: plot.id,
@@ -215,6 +254,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
         confirmedDate: today,
         payments: [],
       });
+
       addNotification({
         id: `notif-${Date.now()}`,
         type: 'plot_sold',
@@ -226,18 +266,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
       });
 
       // Synchronize to PostgreSQL database
-      fetch('http://localhost:8000/api/v1/plots/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plotNumber: plot.plotNumber,
-          paymentType: 'full',
-          amount: plot.totalPrice,
-          customerName: customerName,
-          customerEmail: customerForm.email || user?.email || '',
-          customerPhone: customerForm.mobile || '',
-        }),
-      }).catch(() => {});
+      api.bookings.create({
+        plot_id: plot.id,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        channel_partner_id: user?.role === 'channel_partner' ? user.id : undefined,
+        booking_type: 'full_payment',
+        amount_paid: amount,
+        payment_method: paymentMethod,
+      }).catch((e) => console.warn('Booking API sync error:', e));
 
       toast.success(`✓ Full payment completed! Plot ${plot.plotNumber} is SOLD OUT (Red).`);
     }
@@ -255,7 +293,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
       amount,
       status: 'completed',
       date: today,
-      reference: `REF/${Date.now()}`,
+      reference: `PAY-${Date.now()}`,
     });
 
     setStep(5);
@@ -319,37 +357,106 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
           {/* Step 1: Customer */}
           {step === 1 && (
             <div className="space-y-4 animate-fade-in">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Details</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Details</h3>
+                {isExistingBooking && (
+                  <span className="text-[10px] bg-blue-100 text-blue-800 font-black px-2 py-0.5 rounded-full">
+                    🔒 Booking Owner Locked
+                  </span>
+                )}
+              </div>
+
+              {isExistingBooking && (
+                <div className="flex items-start gap-2.5 bg-blue-50/80 border border-blue-200 rounded-xl p-3 text-xs text-blue-950 font-medium">
+                  <User size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Verified Buyer:</span> {customerForm.name || plot.customerName}
+                    <span className="block text-[11px] text-blue-700 font-normal mt-0.5">
+                      Payments will be credited directly to this customer's active plot booking account.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="col-span-2">
                   <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
-                  <input value={customerForm.name} onChange={e => setCustomerForm(f => ({ ...f, name: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="Enter full name" />
+                  <input
+                    value={customerForm.name}
+                    onChange={e => setCustomerForm(f => ({ ...f, name: e.target.value }))}
+                    disabled={isExistingBooking}
+                    className={cn(
+                      "w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none transition-all",
+                      isExistingBooking ? "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed" : "border-slate-200 focus:border-sky-500"
+                    )}
+                    placeholder="Enter full name"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Number *</label>
-                  <input value={customerForm.mobile} onChange={e => setCustomerForm(f => ({ ...f, mobile: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="10-digit mobile" />
+                  <input
+                    value={customerForm.mobile}
+                    onChange={e => setCustomerForm(f => ({ ...f, mobile: e.target.value }))}
+                    disabled={isExistingBooking}
+                    className={cn(
+                      "w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none transition-all",
+                      isExistingBooking ? "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed" : "border-slate-200 focus:border-sky-500"
+                    )}
+                    placeholder="10-digit mobile"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Email *</label>
-                  <input value={customerForm.email} onChange={e => setCustomerForm(f => ({ ...f, email: e.target.value }))}
-                    type="email" className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="email@example.com" />
+                  <input
+                    value={customerForm.email}
+                    onChange={e => setCustomerForm(f => ({ ...f, email: e.target.value }))}
+                    type="email"
+                    disabled={isExistingBooking}
+                    className={cn(
+                      "w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none transition-all",
+                      isExistingBooking ? "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed" : "border-slate-200 focus:border-sky-500"
+                    )}
+                    placeholder="email@example.com"
+                  />
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-bold text-slate-700 block mb-1">Address</label>
-                  <textarea value={customerForm.address} onChange={e => setCustomerForm(f => ({ ...f, address: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none h-18 resize-none" placeholder="Full address" />
+                  <textarea
+                    value={customerForm.address}
+                    onChange={e => setCustomerForm(f => ({ ...f, address: e.target.value }))}
+                    disabled={isExistingBooking}
+                    className={cn(
+                      "w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none h-18 resize-none transition-all",
+                      isExistingBooking ? "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed" : "border-slate-200 focus:border-sky-500"
+                    )}
+                    placeholder="Full address"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Aadhar Number</label>
-                  <input value={customerForm.aadhar} onChange={e => setCustomerForm(f => ({ ...f, aadhar: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="XXXX XXXX XXXX" />
+                  <input
+                    value={customerForm.aadhar}
+                    onChange={e => setCustomerForm(f => ({ ...f, aadhar: e.target.value }))}
+                    disabled={isExistingBooking}
+                    className={cn(
+                      "w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none transition-all",
+                      isExistingBooking ? "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed" : "border-slate-200 focus:border-sky-500"
+                    )}
+                    placeholder="XXXX XXXX XXXX"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">PAN Number</label>
-                  <input value={customerForm.pan} onChange={e => setCustomerForm(f => ({ ...f, pan: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none" placeholder="ABCDE1234F" />
+                  <input
+                    value={customerForm.pan}
+                    onChange={e => setCustomerForm(f => ({ ...f, pan: e.target.value }))}
+                    disabled={isExistingBooking}
+                    className={cn(
+                      "w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none transition-all",
+                      isExistingBooking ? "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed" : "border-slate-200 focus:border-sky-500"
+                    )}
+                    placeholder="ABCDE1234F"
+                  />
                 </div>
               </div>
             </div>
@@ -387,28 +494,46 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
           {/* Step 3: Payment Type */}
           {step === 3 && (
             <div className="space-y-5 animate-fade-in">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Payment Type</h3>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {isExistingBooking ? 'Select Balance Payment Option' : 'Select Payment Type'}
+              </h3>
               <div className="space-y-3">
-                {[
-                  {
-                    id: 'token',
-                    label: 'Token Advance (7-Day Validity)',
-                    color: 'text-yellow-600',
-                    desc: 'Pay a small token advance to hold the plot for 7 days. If not converted within 7 days, plot automatically returns to Available (Green).',
-                  },
-                  {
-                    id: 'continue',
-                    label: 'Partial Payment (50% or above · 90-Day Due Date)',
-                    color: 'text-orange-600',
-                    desc: `Pay half or above (min ₹${(plot.totalPrice * 0.5).toLocaleString('en-IN')}). Balance due within 90 days. If unpaid, plot returns to Available (Green).`,
-                  },
-                  {
-                    id: 'full',
-                    label: 'Full Payment (Immediate Sold Out)',
-                    color: 'text-red-600',
-                    desc: `Pay 100% full amount (${formatCurrencyFull(plot.totalPrice)}) to complete the purchase and lock as Sold Out immediately.`,
-                  },
-                ].map(opt => (
+                {(isExistingBooking
+                  ? [
+                      {
+                        id: 'continue',
+                        label: 'Pay Balance Installment',
+                        color: 'text-orange-600',
+                        desc: `Pay an installment toward your balance (Remaining due: ${formatCurrencyFull(remainingDue)}). Balance deadline remains 90 days.`,
+                      },
+                      {
+                        id: 'full',
+                        label: `Full Remaining Balance Payoff (${formatCurrencyFull(remainingDue)})`,
+                        color: 'text-red-600',
+                        desc: `Pay the entire remaining ₹${remainingDue.toLocaleString('en-IN')} to clear all dues and mark this plot 100% Sold Out (Red).`,
+                      },
+                    ]
+                  : [
+                      {
+                        id: 'token',
+                        label: 'Token Advance (7-Day Validity)',
+                        color: 'text-yellow-600',
+                        desc: 'Pay a small token advance to hold the plot for 7 days. If not converted within 7 days, plot automatically returns to Available (Green).',
+                      },
+                      {
+                        id: 'continue',
+                        label: 'Partial Payment (50% or above · 90-Day Due Date)',
+                        color: 'text-orange-600',
+                        desc: `Pay half or above (min ₹${(plot.totalPrice * 0.5).toLocaleString('en-IN')}). Balance due within 90 days. If unpaid, plot returns to Available (Green).`,
+                      },
+                      {
+                        id: 'full',
+                        label: 'Full Payment (Immediate Sold Out)',
+                        color: 'text-red-600',
+                        desc: `Pay 100% full amount (${formatCurrencyFull(plot.totalPrice)}) to complete the purchase and lock as Sold Out immediately.`,
+                      },
+                    ]
+                ).map(opt => (
                   <label key={opt.id} className={cn(
                     'flex gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all',
                     paymentOption === opt.id ? 'border-sky-500 bg-sky-50/50 ring-2 ring-sky-500/20' : 'border-slate-200 hover:border-sky-200'
@@ -417,7 +542,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
                       onChange={() => {
                         setPaymentOption(opt.id as PaymentOption);
                         if (opt.id === 'continue') {
-                          setContinueAmount(String(plot.totalPrice * 0.5));
+                          setContinueAmount(isExistingBooking ? String(remainingDue) : String(plot.totalPrice * 0.5));
                         }
                       }} className="mt-0.5 accent-blue-600" />
                     <div>

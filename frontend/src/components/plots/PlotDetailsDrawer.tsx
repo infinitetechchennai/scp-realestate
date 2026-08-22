@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plot } from '../../types';
-import { X, MapPin, Square, Compass, DollarSign, Calendar, User, Handshake, Clock, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { X, MapPin, Square, Compass, DollarSign, Calendar, User, Handshake, Clock, CheckCircle, AlertCircle, Sparkles, Lock } from 'lucide-react';
 import { StatusBadge, ConfirmationModal } from '../ui/UIComponents';
 import { formatCurrencyFull, getDaysRemaining } from '../../utils/helpers';
 import { usePlotStore } from '../../store/plotStore';
@@ -21,6 +21,25 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
   const { markAsSold, tokenRequired } = usePlotStore();
   const { user } = useAuthStore();
   const { addNotification } = useNotificationStore();
+
+  // Ownership verification
+  const isPlotOwner = Boolean(
+    user && (
+      (plot?.customerId && user.id === plot.customerId) ||
+      (plot?.customerEmail && user.email && plot.customerEmail.toLowerCase() === user.email.toLowerCase()) ||
+      (plot?.customerName && user.name && plot.customerName.toLowerCase() === user.name.toLowerCase())
+    )
+  );
+
+  const isAssignedPartner = Boolean(
+    user?.role === 'channel_partner' && (
+      (plot?.channelPartnerId && user.id === plot.channelPartnerId) ||
+      (plot?.channelPartnerName && user.name && plot.channelPartnerName.toLowerCase() === user.name.toLowerCase())
+    )
+  );
+
+  const isSuperAdmin = user?.role === 'super_admin';
+  const canPayBalance = isPlotOwner || isAssignedPartner || isSuperAdmin;
 
   // Prevent background body scroll when drawer is open
   useEffect(() => {
@@ -217,14 +236,28 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
 
               {/* Action Buttons */}
               <div className="pt-2">
-                {user?.role !== 'super_admin' && (plot.status === 'token_booked' || plot.status === 'partial_booked') && (
-                  <button
-                    type="button"
-                    onClick={() => setShowBookingWizard(true)}
-                    className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md"
-                  >
-                    Pay Remaining Balance
-                  </button>
+                {user?.role !== 'super_admin' && (plot.status === 'token_booked' || plot.status === 'partial_booked' || plot.status === 'confirmed') && (
+                  <>
+                    {canPayBalance ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowBookingWizard(true)}
+                        className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 active:scale-[0.99]"
+                      >
+                        Pay Remaining Balance ({formatCurrencyFull(plot.balanceDue || 0)})
+                      </button>
+                    ) : (
+                      <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-3.5 text-center space-y-1.5 shadow-2xs">
+                        <div className="flex items-center justify-center gap-1.5 text-amber-950 font-black text-xs">
+                          <Lock size={14} className="text-amber-700" />
+                          <span>Plot Reserved Under Active Hold</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                          This plot is currently booked by another buyer. Only the booking customer can make payments on this plot. If their hold expires, it will automatically reopen.
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {user?.role === 'super_admin' && plot.status !== 'sold' && (

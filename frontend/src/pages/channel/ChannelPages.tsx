@@ -179,7 +179,12 @@ export const ChannelCustomers: React.FC = () => {
 };
 
 export const ChannelBookings: React.FC = () => {
-  const { bookings } = useBookingStore();
+  const [bookings, setBookings] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    api.bookings.list().then(data => setBookings(data || [])).catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -191,7 +196,7 @@ export const ChannelBookings: React.FC = () => {
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-              <th className="text-left px-6 py-3.5">Booking ID</th>
+              <th className="text-left px-6 py-3.5">Booking Ref</th>
               <th className="text-left px-4 py-3.5">Plot No</th>
               <th className="text-left px-4 py-3.5">Client Name</th>
               <th className="text-left px-4 py-3.5">Date</th>
@@ -201,17 +206,25 @@ export const ChannelBookings: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {bookings.slice(0, 8).map(b => (
-              <tr key={b.id} className="table-row-hover">
-                <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{b.id}</td>
-                <td className="px-4 py-3.5 font-black text-slate-900">{b.plotNumber}</td>
-                <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customerName}</td>
-                <td className="px-4 py-3.5 text-slate-500 font-mono">{b.bookingDate}</td>
-                <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(b.amountPaid)}</td>
-                <td className="px-4 py-3.5 text-right font-black text-red-600">{b.balanceAmount > 0 ? formatCurrencyFull(b.balanceAmount) : '—'}</td>
-                <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
+            {bookings.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-center py-8 text-slate-400 font-medium">No client bookings yet.</td>
               </tr>
-            ))}
+            ) : (
+              bookings.slice(0, 10).map(b => (
+                <tr key={b.id} className="table-row-hover">
+                  <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3.5 font-black text-slate-900">{b.plot_number || '—'}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customer_name}</td>
+                  <td className="px-4 py-3.5 text-slate-500 font-mono">
+                    {b.created_at ? new Date(b.created_at).toLocaleDateString() : '—'}
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid))}</td>
+                  <td className="px-4 py-3.5 text-right font-black text-red-600">{Number(b.balance_amount) > 0 ? formatCurrencyFull(Number(b.balance_amount)) : '—'}</td>
+                  <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -220,19 +233,24 @@ export const ChannelBookings: React.FC = () => {
 };
 
 export const ChannelPayments: React.FC = () => {
-  const { payments } = usePaymentStore();
+  const [payments, setPayments] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    api.payments.list().then(data => setPayments(data || [])).catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-black text-slate-900">Payment Audit Trail</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Transactions initiated for your client accounts</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Live transaction records from PostgreSQL</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <table className="w-full text-xs">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-              <th className="text-left px-6 py-3.5">Payment ID</th>
+              <th className="text-left px-6 py-3.5">Payment Ref</th>
               <th className="text-left px-4 py-3.5">Client Name</th>
               <th className="text-left px-4 py-3.5">Plot No</th>
               <th className="text-left px-4 py-3.5">Type</th>
@@ -241,16 +259,22 @@ export const ChannelPayments: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {payments.slice(0, 8).map(p => (
-              <tr key={p.id} className="table-row-hover">
-                <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{p.id}</td>
-                <td className="px-4 py-3.5 font-bold text-slate-900">{p.customerName}</td>
-                <td className="px-4 py-3.5 font-black">{p.plotNumber || '—'}</td>
-                <td className="px-4 py-3.5 capitalize text-slate-600">{p.type.replace('_', ' ')}</td>
-                <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(p.amount)}</td>
-                <td className="px-4 py-3.5"><StatusBadge status={p.status} /></td>
+            {payments.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-8 text-slate-400 font-medium">No payment transactions yet.</td>
               </tr>
-            ))}
+            ) : (
+              payments.slice(0, 10).map(p => (
+                <tr key={p.id} className="table-row-hover">
+                  <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{p.payment_reference || p.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3.5 font-bold text-slate-900">{p.customer_name || 'Client'}</td>
+                  <td className="px-4 py-3.5 font-black">{p.plot_number || '—'}</td>
+                  <td className="px-4 py-3.5 capitalize text-slate-600">{(p.payment_type || '').replace('_', ' ')}</td>
+                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(p.amount))}</td>
+                  <td className="px-4 py-3.5"><StatusBadge status={p.status} /></td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -96,6 +96,8 @@ export const usePlotStore = create<PlotState>((set, get) => ({
                 paymentDeadline: p.balanceDueDate || undefined,
                 customerId: p.customerId || undefined,
                 customerName: p.customerName || undefined,
+                customerEmail: p.customerEmail || undefined,
+                customerPhone: p.customerPhone || undefined,
                 channelPartnerId: p.partnerId || undefined,
                 channelPartnerName: p.partnerName || undefined,
               } as Plot;
@@ -165,7 +167,7 @@ export const usePlotStore = create<PlotState>((set, get) => ({
         }
       },
 
-      // 2. PARTIAL PAYMENT: Orange status, >= 50% paid, 90 days due date
+      // 2. PARTIAL PAYMENT: Confirmed status, >= 50% paid, 90 days due date
       startPartialBooking: async (plotId, bookingData) => {
         const today = format(new Date(), 'yyyy-MM-dd');
         const deadline = format(addDays(new Date(), 90), 'yyyy-MM-dd');
@@ -174,7 +176,7 @@ export const usePlotStore = create<PlotState>((set, get) => ({
             p.id === plotId
               ? {
                   ...p,
-                  status: 'partial_booked',
+                  status: 'confirmed',
                   bookingDate: today,
                   confirmedDate: today,
                   paymentDeadline: deadline,
@@ -187,7 +189,7 @@ export const usePlotStore = create<PlotState>((set, get) => ({
 
         try {
           await api.plots.updateStatus(plotId, {
-            status: 'partial_booked',
+            status: 'confirmed',
             amount_paid: bookingData.totalPaid,
             balance_amount: Math.max(0, (bookingData.totalPrice || 0) - (bookingData.totalPaid || 0)),
             balance_due_date: deadline,
@@ -268,13 +270,14 @@ export const usePlotStore = create<PlotState>((set, get) => ({
                 };
               }
             }
-            if (p.status === 'partial_booked' && p.paymentDeadline) {
+            if ((p.status === 'confirmed' || p.status === 'partial_booked') && p.paymentDeadline) {
               const deadlineDate = new Date(p.paymentDeadline);
               if (isAfter(now, deadlineDate)) {
                 return {
                   ...p,
                   status: 'available',
                   bookingDate: undefined,
+                  confirmedDate: undefined,
                   paymentDeadline: undefined,
                   totalPaid: undefined,
                   balanceDue: undefined,

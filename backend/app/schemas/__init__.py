@@ -24,6 +24,15 @@ from app.schemas.plot import (
     PlotResponse,
     PlotStatusUpdateRequest,
 )
+from app.schemas.booking import (
+    BookingCreate,
+    BookingUpdate,
+    BookingResponse,
+)
+from app.schemas.payment import (
+    PaymentCreate,
+    PaymentResponse,
+)
 
 __all__ = [
     "LoginRequest",
@@ -42,4 +51,9 @@ __all__ = [
     "PlotCreateRequest",
     "PlotResponse",
     "PlotStatusUpdateRequest",
+    "BookingCreate",
+    "BookingUpdate",
+    "BookingResponse",
+    "PaymentCreate",
+    "PaymentResponse",
 ]
