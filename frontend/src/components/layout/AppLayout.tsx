@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { usePlotStore } from '../../store/plotStore';
 
 export const AppLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const { fetchPlots, fetchProjects } = usePlotStore();
+
+  useEffect(() => {
+    fetchPlots();
+    fetchProjects();
+  }, []);
 
   return (
     <div className="flex h-screen w-screen bg-[#f8fafc] overflow-hidden">

@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBadge, ConfirmationModal, Modal, Tabs } from '../../components/ui/UIComponents';
 import {
   Search, AlertCircle, FileText, CheckCircle, XCircle, Building2, Phone, Mail,
-  MapPin, CreditCard, Eye, ShieldCheck, Download, RefreshCw, Upload, Image as ImageIcon, ExternalLink
+  MapPin, CreditCard, Eye, ShieldCheck, Download, RefreshCw, Upload, Image as ImageIcon, ExternalLink, QrCode
 } from 'lucide-react';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
+import { PartnerKycPaymentModal } from '../../components/channel/PartnerKycPaymentModal';
 
 interface PartnerRow {
   id: string;
@@ -50,6 +51,7 @@ export const AdminChannelPartners: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [qrPaymentPartner, setQrPaymentPartner] = useState<PartnerRow | null>(null);
   
   // Visual Document Preview State
   const [previewDoc, setPreviewDoc] = useState<{ type: 'aadhar' | 'pan'; partner: PartnerDetail } | null>(null);
@@ -217,6 +219,7 @@ export const AdminChannelPartners: React.FC = () => {
                 <th className="text-left px-6 py-3.5">Partner / Agency</th>
                 <th className="text-left px-4 py-3.5">Contact</th>
                 <th className="text-left px-4 py-3.5">KYC Identification</th>
+                <th className="text-left px-4 py-3.5">Registration Fee</th>
                 <th className="text-left px-4 py-3.5">Registration Date</th>
                 <th className="text-left px-4 py-3.5">Status</th>
                 <th className="text-center px-4 py-3.5">Actions</th>
@@ -225,14 +228,14 @@ export const AdminChannelPartners: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                  <td colSpan={7} className="text-center py-10 text-slate-400">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <span>Loading channel partners from PostgreSQL...</span>
                   </td>
                 </tr>
               ) : partners.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                  <td colSpan={7} className="text-center py-10 text-slate-400">
                     No channel partners found in database matching this criteria.
                   </td>
                 </tr>
@@ -265,6 +268,20 @@ export const AdminChannelPartners: React.FC = () => {
                           <span className="font-mono text-slate-600">{cp.pan_number || 'Pending'}</span>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <button
+                        onClick={() => setQrPaymentPartner(cp)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 transition-all ${
+                          cp.registration_fee_paid
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs font-extrabold'
+                            : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 active:scale-95 shadow-2xs'
+                        }`}
+                        title={cp.registration_fee_paid ? 'Fee Confirmed via Google Pay' : 'Click to Open ₹500 Google Pay QR Code'}
+                      >
+                        <QrCode size={12} className={cp.registration_fee_paid ? 'text-emerald-600' : 'text-rose-600'} />
+                        <span>{cp.registration_fee_paid ? '✓ ₹500 Paid' : 'Unpaid (₹500 QR)'}</span>
+                      </button>
                     </td>
                     <td className="px-4 py-3.5 text-slate-500 font-mono text-[11px]">
                       {new Date(cp.created_at).toLocaleDateString('en-IN')}
@@ -680,6 +697,18 @@ export const AdminChannelPartners: React.FC = () => {
           </div>
         }
       />
+
+      {/* Google Pay / UPI ₹500 KYC Fee QR Modal */}
+      {qrPaymentPartner && (
+        <PartnerKycPaymentModal
+          isOpen={!!qrPaymentPartner}
+          onClose={() => setQrPaymentPartner(null)}
+          partner={qrPaymentPartner}
+          onPaymentSuccess={() => {
+            fetchPartners();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@ import uuid
 import random
 import hashlib
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -11,6 +11,7 @@ from app.models.user import User, Role, UserRole
 from app.models.channel_partner import ChannelPartner, ChannelPartnerBankAccount
 from app.schemas.auth import LoginRequest, TokenResponse, RegisterPartnerRequest, KycStatusResponse, UserProfile
 from app.api.deps import get_current_user
+from app.utils.audit import log_audit_event
 
 router = APIRouter()
 
@@ -106,6 +107,16 @@ async def login(
     # 4. Generate JWT Token
     access_token = create_access_token(subject=user.id, role=primary_role)
 
+    # Record login audit event
+    await log_audit_event(
+        db=db,
+        action="USER_LOGIN",
+        resource_type="auth",
+        actor_user_id=user.id,
+        new_values={"email": user.email, "role": primary_role, "status": "SUCCESS"},
+    )
+    await db.commit()
+
     user_profile = UserProfile(
         id=user.id,
         email=user.email,
@@ -193,7 +204,7 @@ async def register_channel_partner(
         state=req.state,
         postal_code=req.pincode,
         status="pending",
-        registration_paid=True,
+        registration_paid=False,
         registration_fee=500.00,
     )
     db.add(new_partner)
@@ -216,8 +227,9 @@ async def register_channel_partner(
     await db.commit()
 
     return KycStatusResponse(
+        partner_id=new_partner.id,
         status="pending",
-        message="Channel Partner registration and KYC submitted successfully. Awaiting Super Admin approval.",
+        message="Channel Partner registration and KYC submitted successfully. Please complete ₹500 KYC onboarding payment.",
         company_name=req.company_name,
         email=req.email,
         aadhar_number=req.aadhar_number,

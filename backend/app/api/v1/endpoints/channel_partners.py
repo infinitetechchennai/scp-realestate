@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.channel_partner import ChannelPartner
 from app.schemas.partner import PartnerListItem, PartnerKycDetail, PartnerApprovalRequest
 from app.api.deps import require_role
+from app.utils.audit import log_audit_event
 
 router = APIRouter()
 
@@ -40,12 +41,23 @@ async def list_channel_partners(
     result = await db.execute(stmt)
     partners = result.scalars().all()
 
+    # Fetch all partner IDs that have an actual completed payment in app.payments
+    from app.models.payment import Payment
+    pay_stmt = select(Payment.channel_partner_id).where(
+        Payment.channel_partner_id.is_not(None),
+        Payment.payment_type == "registration_fee",
+        Payment.status == "completed"
+    )
+    pay_res = await db.execute(pay_stmt)
+    paid_partner_ids = set(pay_res.scalars().all())
+
     items = []
     for p in partners:
         p_fname = p.first_name or (p.user.first_name if p.user else "")
         p_lname = p.last_name or (p.user.last_name if p.user else "")
         p_email = p.email or (p.user.email if p.user else "")
         p_phone = p.phone or (p.user.phone if p.user else None)
+        is_paid = (p.id in paid_partner_ids) or (p.registration_paid is True and p.id in paid_partner_ids)
 
         items.append(
             PartnerListItem(
@@ -58,7 +70,7 @@ async def list_channel_partners(
                 aadhar_number=p.aadhaar_encrypted or (f"XXXX-XXXX-{p.aadhaar_last4}" if p.aadhaar_last4 else None),
                 pan_number=p.pan_encrypted or (f"XXXXXX{p.pan_last4}" if p.pan_last4 else None),
                 status=p.status,
-                registration_fee_paid=p.registration_paid,
+                registration_fee_paid=is_paid,
                 created_at=p.created_at,
             )
         )
@@ -100,6 +112,16 @@ async def get_channel_partner_kyc(
     p_email = partner.email or (partner.user.email if partner.user else "")
     p_phone = partner.phone or (partner.user.phone if partner.user else None)
 
+    # Strictly check if an actual payment was recorded
+    pay_chk = await db.execute(
+        select(Payment.id).where(
+            Payment.channel_partner_id == partner.id,
+            Payment.payment_type == "registration_fee",
+            Payment.status == "completed"
+        ).limit(1)
+    )
+    is_paid = (pay_chk.scalar_one_or_none() is not None) or (partner.registration_paid is True)
+
     return PartnerKycDetail(
         id=partner.id,
         user_id=partner.user_id,
@@ -116,7 +138,7 @@ async def get_channel_partner_kyc(
         pan_number=partner.pan_encrypted or (f"XXXXXX{partner.pan_last4}" if partner.pan_last4 else None),
         status=partner.status,
         rejection_reason=None,
-        registration_fee_paid=partner.registration_paid,
+        registration_fee_paid=is_paid,
         created_at=partner.created_at,
         bank_accounts=bank_list,
     )
@@ -145,6 +167,14 @@ async def approve_channel_partner(
     partner.approved_at = datetime.now(timezone.utc)
     partner.approved_by = current_admin.id
 
+    await log_audit_event(
+        db=db,
+        action="PARTNER_APPROVED",
+        resource_type="channel_partner",
+        actor_user_id=current_admin.id,
+        resource_id=partner.id,
+        new_values={"company_name": partner.company_name, "status": "approved"},
+    )
     await db.commit()
 
     return {
@@ -176,6 +206,14 @@ async def reject_channel_partner(
         )
 
     partner.status = "rejected"
+    await log_audit_event(
+        db=db,
+        action="PARTNER_REJECTED",
+        resource_type="channel_partner",
+        actor_user_id=current_admin.id,
+        resource_id=partner.id,
+        new_values={"company_name": partner.company_name, "status": "rejected", "reason": req.rejection_reason},
+    )
     await db.commit()
 
     return {
@@ -207,6 +245,14 @@ async def suspend_channel_partner(
         )
 
     partner.status = "suspended"
+    await log_audit_event(
+        db=db,
+        action="PARTNER_SUSPENDED",
+        resource_type="channel_partner",
+        actor_user_id=current_admin.id,
+        resource_id=partner.id,
+        new_values={"company_name": partner.company_name, "status": "suspended"},
+    )
     await db.commit()
 
     return {

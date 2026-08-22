@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Eye, EyeOff, LogIn, Lock, Mail, Shield, UserPlus, FileText,
-  Upload, CheckCircle, Clock, XCircle, AlertCircle, Building2, Phone, MapPin, CreditCard, ArrowLeft
+  Upload, CheckCircle, Clock, XCircle, AlertCircle, Building2, Phone, MapPin, CreditCard, ArrowLeft, QrCode,
+  Smartphone, Copy, Check
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
 import { UserRole, ChannelPartner } from '../types';
 import { Modal } from '../components/ui/UIComponents';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
+import { PartnerKycPaymentModal } from '../components/channel/PartnerKycPaymentModal';
 
 export const LoginPage: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'register_partner'>('login');
@@ -21,6 +24,8 @@ export const LoginPage: React.FC = () => {
   // KYC Pending / Rejected Modal state
   const [kycModalPartner, setKycModalPartner] = useState<Partial<ChannelPartner> | null>(null);
   const [kycModalStatus, setKycModalStatus] = useState<'pending' | 'rejected' | 'suspended' | 'approved' | null>(null);
+  const [paymentModalPartner, setPaymentModalPartner] = useState<any | null>(null);
+  const [regPaid, setRegPaid] = useState(false);
 
   // Partner Registration Form State
   const [regForm, setRegForm] = useState({
@@ -52,7 +57,7 @@ export const LoginPage: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const result = await login(email, password, role);
       setLoading(false);
@@ -118,7 +123,7 @@ export const LoginPage: React.FC = () => {
       const firstName = nameParts[0];
       const lastName = nameParts.slice(1).join(' ') || undefined;
 
-      await api.auth.registerPartner({
+      const regRes = await api.auth.registerPartner({
         company_name: regForm.companyName,
         first_name: firstName,
         last_name: lastName,
@@ -162,8 +167,18 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('kyc_file_pan_latest', regForm.panDataUrl);
       }
 
-      toast.success('✓ KYC Documents & Registration Submitted to Server!');
+      toast.success('✓ Registration submitted! Please complete the ₹500 KYC Fee payment.');
       setRegSuccess(true);
+
+      // Open Google Pay QR Modal immediately
+      setPaymentModalPartner({
+        id: regRes?.partner_id || regRes?.id || 'new',
+        company_name: regForm.companyName,
+        name: regForm.name,
+        email: regForm.email,
+        phone: regForm.phone,
+        registration_fee_paid: false,
+      });
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit registration');
     } finally {
@@ -215,7 +230,7 @@ export const LoginPage: React.FC = () => {
       {/* Left panel (Hero) */}
       <div className="hidden lg:flex flex-col justify-between w-5/12 p-12 relative overflow-hidden bg-gradient-to-br from-[#080e1a] via-[#0f1d38] to-[#060a14] border-r border-[#131f37]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-500/15 via-transparent to-transparent pointer-events-none" />
-        
+
         <div className="relative z-10">
           <div className="mb-10">
             <div className="inline-block bg-white rounded-2xl p-3 shadow-xl border border-white/20">
@@ -260,8 +275,8 @@ export const LoginPage: React.FC = () => {
       </div>
 
       {/* Right panel (Forms) */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-10 bg-white overflow-y-auto max-h-screen">
-        <div className="w-full max-w-lg">
+      <div className="flex-1 flex justify-center p-6 md:p-10 lg:py-12 bg-white overflow-y-auto h-screen">
+        <div className="w-full max-w-lg py-6 my-auto">
           {/* Mobile Logo */}
           <div className="mb-6 lg:hidden">
             <div className="inline-block bg-white border border-slate-200 rounded-xl p-2 shadow-sm">
@@ -274,11 +289,10 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => { setAuthMode('login'); setRegSuccess(false); }}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
-                authMode === 'login'
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${authMode === 'login'
+                ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                : 'text-slate-500 hover:text-slate-800'
+                }`}
             >
               <LogIn size={15} />
               Sign In to Portal
@@ -286,11 +300,10 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => { setAuthMode('register_partner'); setRegSuccess(false); }}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
-                authMode === 'register_partner'
-                  ? 'bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-md shadow-blue-500/20'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${authMode === 'register_partner'
+                ? 'bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-md shadow-blue-500/20'
+                : 'text-slate-500 hover:text-slate-800'
+                }`}
             >
               <UserPlus size={15} />
               Partner Registration & KYC
@@ -315,11 +328,10 @@ export const LoginPage: React.FC = () => {
                         key={r}
                         type="button"
                         onClick={() => setRole(r)}
-                        className={`py-2.5 px-2 rounded-xl border-2 text-xs font-bold transition-all ${
-                          role === r
-                            ? 'border-blue-600 bg-blue-50 text-blue-900 shadow-xs'
-                            : 'border-slate-200 text-slate-600 hover:border-sky-300 hover:bg-slate-50'
-                        }`}
+                        className={`py-2.5 px-2 rounded-xl border-2 text-xs font-bold transition-all ${role === r
+                          ? 'border-blue-600 bg-blue-50 text-blue-900 shadow-xs'
+                          : 'border-slate-200 text-slate-600 hover:border-sky-300 hover:bg-slate-50'
+                          }`}
                       >
                         {r === 'super_admin' ? 'Super Admin' : r === 'channel_partner' ? 'Channel Partner' : 'Customer'}
                       </button>
@@ -397,6 +409,40 @@ export const LoginPage: React.FC = () => {
                       Thank you for submitting your Aadhaar & PAN KYC documents. Your application has been stored in PostgreSQL in <strong>Pending Verification</strong> status.
                     </p>
                   </div>
+
+                  {/* Payment Status Card */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 max-w-sm mx-auto text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">KYC Onboarding Fee:</span>
+                      <span className="text-xs font-black text-slate-900">₹500.00</span>
+                    </div>
+                    {regPaid ? (
+                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                        <CheckCircle size={14} className="text-emerald-600" />
+                        <span>✓ ₹500 Onboarding Fee Confirmed</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 font-medium">
+                          Registration fee pending. Scan Google Pay QR code to complete onboarding.
+                        </div>
+                        <button
+                          onClick={() => setPaymentModalPartner({
+                            id: 'new',
+                            company_name: regForm.companyName,
+                            name: regForm.name,
+                            email: regForm.email,
+                            phone: regForm.phone,
+                          })}
+                          className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          <QrCode size={14} />
+                          <span>Scan ₹500 Google Pay QR</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left text-xs space-y-2 max-w-sm mx-auto">
                     <div className="flex items-center gap-2 text-slate-700 font-bold">
                       <Clock size={14} className="text-orange-500" />
@@ -627,6 +673,57 @@ export const LoginPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Section: KYC Onboarding Fee & Google Pay QR */}
+                    <div className="p-4 bg-gradient-to-br from-indigo-50/80 via-white to-blue-50/80 rounded-2xl border-2 border-indigo-200/90 space-y-3.5 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-black text-indigo-950 uppercase tracking-wider">
+                          <QrCode size={16} className="text-indigo-600" />
+                          <span>Mandatory KYC Onboarding Fee</span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          ₹500.00 Fixed
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3.5 rounded-xl border border-indigo-100">
+                        <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs flex-shrink-0">
+                          <QRCodeSVG
+                            value="upi://pay?pa=12204885695@okbizaxis&pn=infinitetechai&am=500&cu=INR&mode=02"
+                            size={110}
+                            level="M"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1.5 text-left w-full">
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="text-slate-500">Merchant:</span>
+                            <span className="text-slate-900 font-extrabold">infinitetechai</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="text-slate-500">UPI ID:</span>
+                            <div className="flex items-center gap-1.5">
+                              <code className="text-[11px] font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                                12204885695@okbizaxis
+                              </code>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText('12204885695@okbizaxis');
+                                  toast.success('UPI ID copied to clipboard');
+                                }}
+                                className="text-slate-400 hover:text-indigo-600 p-0.5"
+                                title="Copy UPI ID"
+                              >
+                                <Copy size={13} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-medium pt-0.5">
+                            Scan with Google Pay, PhonePe, Paytm, or BHIM. Your payment is verified automatically via bank webhook upon submission.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <button
                       type="submit"
                       disabled={loading}
@@ -637,7 +734,7 @@ export const LoginPage: React.FC = () => {
                       ) : (
                         <>
                           <CheckCircle size={16} />
-                          Submit Application for Admin Approval
+                          Pay ₹500 & Submit Application for Admin Approval
                         </>
                       )}
                     </button>
@@ -758,6 +855,22 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Google Pay / UPI ₹500 KYC Fee QR Modal for Channel Partner */}
+      {paymentModalPartner && (
+        <PartnerKycPaymentModal
+          isOpen={!!paymentModalPartner}
+          onClose={() => {
+            setPaymentModalPartner(null);
+            setRegSuccess(true);
+          }}
+          partner={paymentModalPartner}
+          onPaymentSuccess={() => {
+            setRegPaid(true);
+            toast.success('✓ ₹500 KYC Fee Paid successfully!');
+          }}
+        />
       )}
     </div>
   );

@@ -435,10 +435,11 @@ export const api = {
 
   // Payments API (PostgreSQL app.payments)
   payments: {
-    list: async (customerId?: string, bookingId?: string) => {
+    list: async (customerId?: string, bookingId?: string, channelPartnerId?: string) => {
       const params = new URLSearchParams();
       if (customerId) params.append('customer_id', customerId);
       if (bookingId) params.append('booking_id', bookingId);
+      if (channelPartnerId) params.append('channel_partner_id', channelPartnerId);
 
       const res = await fetch(`${API_BASE_URL}/payments?${params.toString()}`, {
         headers: getAuthHeaders(),
@@ -446,6 +447,138 @@ export const api = {
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail || 'Failed to fetch payments');
+      }
+      return await res.json();
+    },
+
+    getPartnerFeeStatus: async (partnerId: string) => {
+      const res = await fetch(`${API_BASE_URL}/payments/partner-fee-status/${partnerId}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to check fee status');
+      }
+      return await res.json();
+    },
+
+    confirmPartnerFee: async (partnerId: string) => {
+      const res = await fetch(`${API_BASE_URL}/payments/confirm-partner-fee/${partnerId}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to confirm fee');
+      }
+      return await res.json();
+    }
+  },
+
+  // Notifications API (PostgreSQL app.notifications & app.notification_recipients)
+  notifications: {
+    list: async (category?: string) => {
+      const params = new URLSearchParams();
+      if (category && category !== 'all') params.append('category', category);
+
+      const res = await fetch(`${API_BASE_URL}/notifications?${params.toString()}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to fetch notifications');
+      }
+      return await res.json();
+    },
+
+    create: async (payload: {
+      title: string;
+      message: string;
+      notification_type: string;
+      target_audience: string;
+      target_user_id?: string;
+      target_user_ids?: string[];
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/notifications`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        let msg = 'Failed to send notification';
+        if (typeof data.detail === 'string') msg = data.detail;
+        else if (Array.isArray(data.detail) && data.detail.length > 0) {
+          msg = data.detail.map((d: any) => `${d.loc ? d.loc[d.loc.length - 1] + ': ' : ''}${d.msg}`).join(', ');
+        }
+        throw new Error(msg);
+      }
+      return data;
+    },
+
+    markRead: async (notificationId: string) => {
+      const res = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to mark notification as read');
+      }
+      return await res.json();
+    },
+
+    markAllRead: async () => {
+      const res = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to mark all as read');
+      }
+      return await res.json();
+    },
+
+    getUsersDropdown: async () => {
+      const res = await fetch(`${API_BASE_URL}/notifications/users-dropdown`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to load user audience');
+      }
+      return await res.json();
+    }
+  },
+
+  // Audit Logs API (PostgreSQL app.audit_logs)
+  auditLogs: {
+    list: async (filters?: { module?: string; action?: string; search?: string; limit?: number; offset?: number }) => {
+      const params = new URLSearchParams();
+      if (filters?.module && filters.module !== 'all') params.append('module', filters.module);
+      if (filters?.action && filters.action !== 'all') params.append('action', filters.action);
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      if (filters?.offset) params.append('offset', filters.offset.toString());
+
+      const res = await fetch(`${API_BASE_URL}/audit-logs?${params.toString()}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to fetch audit logs');
+      }
+      return await res.json();
+    },
+
+    stats: async () => {
+      const res = await fetch(`${API_BASE_URL}/audit-logs/stats`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to fetch audit stats');
       }
       return await res.json();
     }

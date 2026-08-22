@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Booking, Customer, ChannelPartner, Payment, Notification, AppSettings } from '../types';
 import { defaultSettings } from '../data/mockData';
+import { api } from '../services/api';
 
 // ── Bookings Store (In-Memory Only, No LocalStorage) ────────
 interface BookingState {
@@ -74,22 +75,55 @@ export const usePaymentStore = create<PaymentState>((set) => ({
   resetPayments: () => set({ payments: [] }),
 }));
 
-// ── Notification Store (In-Memory Only, No LocalStorage) ────
+// ── Notification Store (In-Memory & Live PostgreSQL Synced) ────
 interface NotificationState {
   notifications: Notification[];
+  loading: boolean;
+  fetchNotifications: () => Promise<void>;
   addNotification: (n: Notification) => void;
-  markRead: (id: string) => void;
-  markAllRead: () => void;
+  markRead: (id: string) => Promise<void>;
+  markAllRead: () => Promise<void>;
   resetNotifications: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: [],
+  loading: false,
+  fetchNotifications: async () => {
+    set({ loading: true });
+    try {
+      const data = await api.notifications.list();
+      if (Array.isArray(data)) {
+        const mapped: Notification[] = data.map((n: any) => ({
+          id: n.id,
+          type: n.notification_type || 'offer',
+          title: n.title,
+          message: n.message,
+          createdAt: n.created_at || new Date().toISOString(),
+          isRead: n.is_read || false,
+          userId: n.entity_id || '',
+        }));
+        set({ notifications: mapped });
+      }
+    } catch (e) {
+      // Backend offline or token expired
+    } finally {
+      set({ loading: false });
+    }
+  },
   addNotification: (n) => set((s) => ({ notifications: [n, ...s.notifications] })),
-  markRead: (id) =>
-    set((s) => ({ notifications: s.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)) })),
-  markAllRead: () =>
-    set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, isRead: true })) })),
+  markRead: async (id) => {
+    set((s) => ({ notifications: s.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)) }));
+    try {
+      await api.notifications.markRead(id);
+    } catch (e) {}
+  },
+  markAllRead: async () => {
+    set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, isRead: true })) }));
+    try {
+      await api.notifications.markAllRead();
+    } catch (e) {}
+  },
   resetNotifications: () => set({ notifications: [] }),
 }));
 

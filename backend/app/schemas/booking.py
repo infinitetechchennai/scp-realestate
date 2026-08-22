@@ -1,14 +1,14 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Union, Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class BookingBase(BaseModel):
-    plot_id: uuid.UUID
-    customer_id: uuid.UUID
-    channel_partner_id: Optional[uuid.UUID] = None
+    plot_id: Union[uuid.UUID, str]
+    customer_id: Optional[Union[uuid.UUID, str]] = None
+    channel_partner_id: Optional[Union[uuid.UUID, str]] = None
     status: str = "token_paid"
     total_amount: Decimal = Field(..., ge=0)
     token_amount: Decimal = Field(default=Decimal("20000.00"), ge=0)
@@ -18,12 +18,12 @@ class BookingBase(BaseModel):
 
 
 class BookingCreate(BaseModel):
-    plot_id: uuid.UUID
+    plot_id: Union[uuid.UUID, str]
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
     customer_email: Optional[str] = None
-    customer_id: Optional[uuid.UUID] = None
-    channel_partner_id: Optional[uuid.UUID] = None
+    customer_id: Optional[Union[uuid.UUID, str]] = None
+    channel_partner_id: Optional[Union[uuid.UUID, str]] = None
     booking_type: str = "token_advance"  # 'token_advance', 'partial_payment', 'full_payment'
     amount_paid: Decimal = Field(default=Decimal("20000.00"), ge=0)
     payment_method: str = "upi"  # 'upi', 'bank_transfer', 'cash', 'card'

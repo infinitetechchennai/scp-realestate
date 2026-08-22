@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Bell, Search, Menu, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -40,8 +40,12 @@ const routeLabels: Record<string, string[]> = {
 export const Header: React.FC<HeaderProps> = ({ onMobileMenuToggle }) => {
   const location = useLocation();
   const { user } = useAuthStore();
-  const { notifications, markAllRead } = useNotificationStore();
+  const { notifications, markAllRead, fetchNotifications } = useNotificationStore();
   const [showNotif, setShowNotif] = useState(false);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [user]);
 
   const unread = notifications.filter(n => !n.isRead);
   const crumbs = routeLabels[location.pathname] || ['Home'];

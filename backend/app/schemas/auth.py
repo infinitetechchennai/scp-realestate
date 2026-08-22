@@ -46,6 +46,7 @@ class RegisterPartnerRequest(BaseModel):
     ifsc_code: Optional[str] = None
 
 class KycStatusResponse(BaseModel):
+    partner_id: Optional[uuid.UUID] = None
     status: str # 'pending', 'rejected', 'approved', 'suspended'
     message: str
     company_name: str

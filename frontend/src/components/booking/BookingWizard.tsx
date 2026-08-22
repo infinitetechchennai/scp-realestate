@@ -138,7 +138,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
 
       // Synchronize to PostgreSQL database
       api.bookings.create({
-        plot_id: plot.id,
+        plot_id: plot.plotNumber || plot.id,
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone,
@@ -210,7 +210,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
 
       // Synchronize to PostgreSQL database
       api.bookings.create({
-        plot_id: plot.id,
+        plot_id: plot.plotNumber || plot.id,
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone,
@@ -267,7 +267,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ plot, onClose }) =
 
       // Synchronize to PostgreSQL database
       api.bookings.create({
-        plot_id: plot.id,
+        plot_id: plot.plotNumber || plot.id,
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone,

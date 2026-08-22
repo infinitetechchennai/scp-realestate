@@ -21,6 +21,10 @@ export type DocumentStatus = 'uploaded' | 'pending_verification' | 'verified' | 
 export type ChannelPartnerStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export type NotificationType =
+  | 'offer'
+  | 'announcement'
+  | 'reminder'
+  | 'system'
   | 'new_registration'
   | 'token_payment'
   | 'booking_confirmed'
@@ -221,7 +225,7 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
   relatedId?: string; // plotId, bookingId, etc.
-  targetRoles: UserRole[];
+  targetRoles?: UserRole[];
 }
 
 // ---- Audit Log ----

@@ -6,6 +6,8 @@ from app.models.project import Project
 from app.models.plot import Plot
 from app.models.booking import Booking
 from app.models.payment import Payment
+from app.models.notification import Notification, NotificationRecipient
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "User",
@@ -20,4 +22,7 @@ __all__ = [
     "Plot",
     "Booking",
     "Payment",
+    "Notification",
+    "NotificationRecipient",
+    "AuditLog",
 ]

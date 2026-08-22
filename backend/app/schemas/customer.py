@@ -21,7 +21,7 @@ class CustomerCreateRequest(BaseModel):
 
 class CustomerListItem(BaseModel):
     id: uuid.UUID
-    user_id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None
     name: str
     first_name: str
     last_name: Optional[str] = None

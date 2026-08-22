@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePlotStore } from '../../store/plotStore';
 import { useBookingStore, usePaymentStore, useCustomerStore, useNotificationStore } from '../../store/stores';
 import { useAuthStore } from '../../store/authStore';
@@ -6,7 +6,7 @@ import { StatusBadge } from '../../components/ui/UIComponents';
 import { PlotDetailsDrawer } from '../../components/plots/PlotDetailsDrawer';
 import { PlotMap } from '../../components/plots/PlotMap';
 import { Plot } from '../../types';
-import { Search, MapPin, DollarSign, Clock, CreditCard, FolderOpen, Bell, User } from 'lucide-react';
+import { Search, MapPin, IndianRupee, Clock, CreditCard, FolderOpen, Bell, User } from 'lucide-react';
 import { formatCurrencyFull, getDaysRemaining } from '../../utils/helpers';
 import { mockProjects, mockDocuments } from '../../data/mockData';
 import { api } from '../../services/api';
@@ -36,7 +36,7 @@ export const CustomerDashboard: React.FC = () => {
           <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Booked Plots</div>
         </div>
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <DollarSign size={18} className="text-emerald-700 mb-2" />
+          <IndianRupee size={18} className="text-emerald-700 mb-2" />
           <div className="text-2xl font-black text-emerald-800">{formatCurrencyFull(customer?.totalPaid || 20000)}</div>
           <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Total Paid</div>
         </div>
@@ -272,26 +272,40 @@ export const CustomerDocuments: React.FC = () => {
 };
 
 export const CustomerNotifications: React.FC = () => {
-  const { notifications, markRead } = useNotificationStore();
+  const { notifications, markRead, fetchNotifications } = useNotificationStore();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
       <div>
         <h1 className="text-2xl font-black text-slate-900">Notifications & Alerts</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Payment reminders, token expiry warnings, and allotment notices</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Special offers, payment reminders, and project announcements</p>
       </div>
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
-        {notifications.slice(0, 5).map(n => (
-          <div key={n.id} onClick={() => markRead(n.id)} className="p-4 flex items-start gap-3.5 hover:bg-slate-50 cursor-pointer transition-colors">
-            <div className="w-9 h-9 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Bell size={18} />
-            </div>
-            <div>
-              <p className="font-bold text-xs text-slate-900">{n.title}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
-              <p className="text-[10px] text-slate-400 mt-1">{new Date(n.createdAt).toLocaleDateString('en-IN')}</p>
-            </div>
+        {notifications.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-400">
+            No notifications in your inbox yet.
           </div>
-        ))}
+        ) : (
+          notifications.map(n => (
+            <div key={n.id} onClick={() => markRead(n.id)} className="p-4 flex items-start gap-3.5 hover:bg-slate-50 cursor-pointer transition-colors">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${!n.isRead ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-500'}`}>
+                <Bell size={18} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <p className={`text-xs ${!n.isRead ? 'font-black text-slate-950' : 'font-bold text-slate-800'}`}>{n.title}</p>
+                  {!n.isRead && <span className="w-2 h-2 rounded-full bg-blue-600" />}
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{n.message}</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-mono">{new Date(n.createdAt).toLocaleDateString('en-IN')}</p>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

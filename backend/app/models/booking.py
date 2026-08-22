@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, DateTime, ForeignKey, Text, Numeric, BigInteger, func
+from sqlalchemy import String, DateTime, ForeignKey, Text, Numeric, BigInteger, func, FetchedValue
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
@@ -28,7 +28,12 @@ class Booking(Base):
     total_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     token_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     amount_paid: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0, nullable=False)
-    balance_amount: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2), nullable=True)
+    balance_amount: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(14, 2),
+        server_default=FetchedValue(),
+        server_onupdate=FetchedValue(),
+        nullable=True,
+    )
 
     token_paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

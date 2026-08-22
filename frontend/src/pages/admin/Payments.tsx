@@ -1,18 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePaymentStore } from '../../store/stores';
 import { StatusBadge } from '../../components/ui/UIComponents';
 import { DashboardCard } from '../../components/ui/UIComponents';
-import { Search, CreditCard, DollarSign, TrendingUp, Clock } from 'lucide-react';
+import { Search, CreditCard, IndianRupee, TrendingUp, Clock, RefreshCw } from 'lucide-react';
 import { formatCurrencyFull, formatCurrency } from '../../utils/helpers';
+import { api } from '../../services/api';
 
 export const AdminPayments: React.FC = () => {
-  const { payments } = usePaymentStore();
+  const { payments: fallbackPayments } = usePaymentStore();
+  const [livePayments, setLivePayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+
+  const fetchLivePayments = async () => {
+    setLoading(true);
+    try {
+      const data = await api.payments.list();
+      if (data && data.length > 0) {
+        const mapped = data.map((p: any) => ({
+          id: p.payment_reference || p.id,
+          customerName: p.customer_name || p.channel_partner_name || 'Direct Client / Partner',
+          plotNumber: p.plot_number || (p.channel_partner_name ? 'Partner KYC' : '—'),
+          type: p.payment_type || 'token_advance',
+          method: p.payment_method || 'upi',
+          amount: Number(p.amount) || 0,
+          date: p.payment_date ? p.payment_date.split('T')[0] : new Date().toISOString().split('T')[0],
+          status: p.status || 'completed',
+          gateway: p.gateway_name || 'Google Pay',
+        }));
+        setLivePayments(mapped);
+      }
+    } catch (e) {
+      console.warn('Could not fetch live payments from backend, using store cache:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLivePayments();
+  }, []);
+
+  const payments = livePayments.length > 0 ? livePayments : fallbackPayments;
 
   const total = payments.filter(p => p.status === 'completed').reduce((s, p) => s + p.amount, 0);
   const today = payments.filter(p => p.date === new Date().toISOString().split('T')[0]).reduce((s, p) => s + p.amount, 0);
   const tokenColl = payments.filter(p => p.type === 'token_advance').reduce((s, p) => s + p.amount, 0);
-  const fullPayColl = payments.filter(p => p.type === 'full_payment').reduce((s, p) => s + p.amount, 0);
+  const fullPayColl = payments.filter(p => p.type === 'full_payment' || p.type === 'balance_payment').reduce((s, p) => s + p.amount, 0);
 
   const filtered = payments.filter(p =>
     !search || p.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -27,7 +61,7 @@ export const AdminPayments: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <DashboardCard title="Total Collection" value={formatCurrency(total)} icon={DollarSign} iconColor="text-emerald-600" />
+        <DashboardCard title="Total Collection" value={formatCurrency(total)} icon={IndianRupee} iconColor="text-emerald-600" />
         <DashboardCard title="Today's Collection" value={formatCurrency(today)} icon={TrendingUp} iconColor="text-blue-600" />
         <DashboardCard title="Token Advances" value={formatCurrency(tokenColl)} icon={Clock} iconColor="text-orange-500" />
         <DashboardCard title="Full Settlements" value={formatCurrency(fullPayColl)} icon={CreditCard} iconColor="text-sky-600" />

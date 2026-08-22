@@ -7,7 +7,7 @@ import { SurveyBlueprintDiagram } from './SurveyBlueprintDiagram';
 import { BookingWizard } from '../booking/BookingWizard';
 import { PlotDetailsDrawer } from './PlotDetailsDrawer';
 import { formatCurrencyFull, cn, getDaysRemaining } from '../../utils/helpers';
-import { Layers, CheckCircle2, RotateCcw, Search, User, Calendar, DollarSign, Handshake, Clock, Sparkles } from 'lucide-react';
+import { Layers, CheckCircle2, RotateCcw, Search, User, Calendar, IndianRupee, Handshake, Clock, Sparkles } from 'lucide-react';
 
 interface BlueprintLayoutViewProps {
   plots?: Plot[];
@@ -294,7 +294,7 @@ export const BlueprintLayoutView: React.FC<BlueprintLayoutViewProps> = ({
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 flex items-center gap-1"><DollarSign size={12} /> Paid</span>
+                    <span className="text-slate-500 flex items-center gap-1"><IndianRupee size={12} /> Paid</span>
                     <span className="font-black text-emerald-700">{formatCurrencyFull(currentPlot?.totalPaid || currentPlot?.tokenAmount || 100000)}</span>
                   </div>
                   {currentPlot?.balanceDue !== undefined && currentPlot?.balanceDue > 0 && (

@@ -7,7 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class PaymentBase(BaseModel):
     booking_id: Optional[uuid.UUID] = None
-    customer_id: uuid.UUID
+    customer_id: Optional[uuid.UUID] = None
+    channel_partner_id: Optional[uuid.UUID] = None
     payment_type: str = "token_advance"
     payment_method: str = "upi"
     amount: Decimal = Field(..., gt=0)
@@ -22,6 +23,7 @@ class PaymentBase(BaseModel):
 class PaymentCreate(BaseModel):
     booking_id: Optional[uuid.UUID] = None
     customer_id: Optional[uuid.UUID] = None
+    channel_partner_id: Optional[uuid.UUID] = None
     plot_id: Optional[uuid.UUID] = None
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
@@ -33,13 +35,28 @@ class PaymentCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class PaymentWebhookPayload(BaseModel):
+    event: Optional[str] = "payment.success"
+    transaction_id: Optional[str] = None
+    bank_reference_no: Optional[str] = None
+    vpa: Optional[str] = "12204885695@okbizaxis"
+    amount: float = 500.00
+    currency: str = "INR"
+    status: str = "SUCCESS"
+    partner_id: Optional[str] = None
+    booking_id: Optional[str] = None
+    reference_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class PaymentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     payment_reference: str
     booking_id: Optional[uuid.UUID] = None
-    customer_id: uuid.UUID
+    customer_id: Optional[uuid.UUID] = None
+    channel_partner_id: Optional[uuid.UUID] = None
     payment_type: str
     payment_method: str
     amount: Decimal
@@ -55,4 +72,5 @@ class PaymentResponse(BaseModel):
 
     # Display extras
     customer_name: Optional[str] = None
+    channel_partner_name: Optional[str] = None
     plot_number: Optional[str] = None

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Map, BookOpen, Users, Handshake,
   CreditCard, FileBarChart, Bell, FolderOpen, Settings, ClipboardList,
   LogOut, ChevronLeft, ChevronRight, MapPin, X,
-  UserCircle, DollarSign,
+  UserCircle, IndianRupee,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/stores';
@@ -46,7 +46,7 @@ const customerNav: NavItem[] = [
   { label: 'Projects', icon: Building2, to: '/customer/projects' },
   { label: 'Browse Plots', icon: Map, to: '/customer/plots' },
   { label: 'My Bookings', icon: BookOpen, to: '/customer/bookings' },
-  { label: 'Payments', icon: DollarSign, to: '/customer/payments' },
+  { label: 'Payments', icon: IndianRupee, to: '/customer/payments' },
   { label: 'Documents', icon: FolderOpen, to: '/customer/documents' },
   { label: 'Profile', icon: UserCircle, to: '/customer/profile' },
 ];

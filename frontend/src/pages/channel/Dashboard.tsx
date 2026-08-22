@@ -1,14 +1,19 @@
-import React from 'react';
-import { useChannelPartnerStore, useBookingStore } from '../../store/stores';
+import React, { useEffect } from 'react';
+import { useChannelPartnerStore, useBookingStore, useNotificationStore } from '../../store/stores';
 import { useAuthStore } from '../../store/authStore';
 import { DashboardCard } from '../../components/ui/UIComponents';
-import { Users, BookOpen, CheckCircle, DollarSign, Award, TrendingUp, Clock, Star } from 'lucide-react';
+import { Users, BookOpen, CheckCircle, IndianRupee, Award, TrendingUp, Clock, Star, Sparkles, Megaphone } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 
 export const ChannelDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const { channelPartners } = useChannelPartnerStore();
   const { bookings } = useBookingStore();
+  const { notifications, fetchNotifications } = useNotificationStore();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
   const cp = channelPartners.find(c => c.email === user?.email) || channelPartners[0];
 
@@ -17,6 +22,8 @@ export const ChannelDashboard: React.FC = () => {
   const confirmedBookings = myBookings.filter(b => b.status === 'confirmed').length;
   const soldBookings = myBookings.filter(b => b.status === 'sold').length;
 
+  const latestOffers = notifications.filter(n => n.type === 'offer' || n.type === 'announcement');
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -24,13 +31,29 @@ export const ChannelDashboard: React.FC = () => {
         <p className="text-slate-500 text-xs font-medium mt-0.5">{cp?.companyName} — Partner Pipeline & Commission Dashboard</p>
       </div>
 
+      {/* Latest Broadcast Offer Banner */}
+      {latestOffers.length > 0 && (
+        <div className="p-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white rounded-2xl shadow-md space-y-2 border border-blue-400/30">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-white/20 rounded-lg">
+              <Sparkles size={16} className="text-amber-300" />
+            </div>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-sky-100">Active Admin Broadcast / Offer</span>
+          </div>
+          <div>
+            <h3 className="text-sm font-black">{latestOffers[0].title}</h3>
+            <p className="text-xs text-blue-100 mt-0.5 leading-relaxed">{latestOffers[0].message}</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <DashboardCard title="My Customers" value={cp?.totalCustomers || 0} icon={Users} iconColor="text-blue-700" />
         <DashboardCard title="Active Leads" value={cp?.totalLeads || 0} icon={TrendingUp} iconColor="text-sky-600" />
         <DashboardCard title="Token Bookings" value={tokenBookings} icon={Clock} iconColor="text-orange-500" />
         <DashboardCard title="Confirmed" value={confirmedBookings} icon={BookOpen} iconColor="text-red-600" />
         <DashboardCard title="Plots Sold" value={soldBookings} icon={CheckCircle} iconColor="text-slate-600" />
-        <DashboardCard title="Total Sales" value={formatCurrency(cp?.totalRevenue || 0)} icon={DollarSign} iconColor="text-emerald-600" />
+        <DashboardCard title="Total Sales" value={formatCurrency(cp?.totalRevenue || 0)} icon={IndianRupee} iconColor="text-emerald-600" />
         <DashboardCard title="Commission" value={formatCurrency(cp?.commission || 0)} icon={Award} iconColor="text-blue-700" />
         <DashboardCard title="Pending Payout" value={formatCurrency(cp?.pendingCommission || 0)} icon={Star} iconColor="text-sky-600" />
       </div>

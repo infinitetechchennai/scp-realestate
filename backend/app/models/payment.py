@@ -19,7 +19,8 @@ class Payment(Base):
     payment_reference: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     
     booking_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("app.bookings.id"), nullable=True)
-    customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("app.customers.id"), nullable=False)
+    customer_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("app.customers.id"), nullable=True)
+    channel_partner_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("app.channel_partners.id"), nullable=True)
 
     payment_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'registration_fee', 'token_advance', 'continue_payment', 'full_payment', 'balance_payment', 'refund'
     payment_method: Mapped[str] = mapped_column(String(50), nullable=False)  # 'upi', 'bank_transfer', 'cash', 'card', 'cheque', 'other'
@@ -39,4 +40,5 @@ class Payment(Base):
 
     # Relationships
     booking: Mapped[Optional["Booking"]] = relationship("Booking", back_populates="payments", lazy="selectin")
-    customer: Mapped["Customer"] = relationship("Customer", foreign_keys=[customer_id], lazy="selectin")
+    customer: Mapped[Optional["Customer"]] = relationship("Customer", foreign_keys=[customer_id], lazy="selectin")
+    channel_partner: Mapped[Optional["ChannelPartner"]] = relationship("ChannelPartner", foreign_keys=[channel_partner_id], lazy="selectin")

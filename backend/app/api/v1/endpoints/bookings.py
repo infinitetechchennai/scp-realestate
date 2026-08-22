@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, or_
 from app.core.database import get_db
 from app.models.booking import Booking
 from app.models.payment import Payment
@@ -12,6 +12,7 @@ from app.models.plot import Plot
 from app.models.customer import Customer
 from app.models.channel_partner import ChannelPartner
 from app.schemas.booking import BookingCreate, BookingResponse, BookingUpdate
+from app.utils.audit import log_audit_event
 
 router = APIRouter()
 
@@ -89,15 +90,22 @@ async def create_booking(
     """
     Create a new booking, record the payment transaction, and update the plot status atomically.
     """
-    # 1. Fetch Plot
-    stmt = select(Plot).where(Plot.id == req.plot_id)
+    # 1. Fetch Plot (support both UUID and plot_number like 'P-001' / 'p-001' / '1')
+    p_str = str(req.plot_id).strip()
+    try:
+        p_uuid = uuid.UUID(p_str)
+        stmt = select(Plot).where(or_(Plot.id == p_uuid, Plot.plot_number.ilike(p_str)))
+    except Exception:
+        p_num = f"P-{int(p_str):03d}" if p_str.isdigit() else p_str
+        stmt = select(Plot).where(or_(Plot.plot_number.ilike(p_str), Plot.plot_number.ilike(p_num)))
+
     res = await db.execute(stmt)
     plot = res.scalar_one_or_none()
 
     if not plot:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plot not found."
+            detail=f"Plot '{p_str}' not found in layout database."
         )
 
     if plot.status == "sold":
@@ -145,7 +153,6 @@ async def create_booking(
         new_balance = max(Decimal("0.00"), existing_booking.total_amount - new_total_paid)
 
         existing_booking.amount_paid = new_total_paid
-        existing_booking.balance_amount = new_balance
 
         if new_balance == Decimal("0.00"):
             existing_booking.status = "sold"
@@ -298,7 +305,6 @@ async def create_booking(
         total_amount=total_price,
         token_amount=amount_paid if booking_db_status == "token_paid" else Decimal("20000.00"),
         amount_paid=amount_paid,
-        balance_amount=balance_amount,
         token_paid_at=token_paid_at,
         token_expires_at=token_expires_at,
         confirmed_at=confirmed_at,
@@ -328,6 +334,21 @@ async def create_booking(
 
     # 7. Update Plot Status in app.plots
     plot.status = plot_db_status
+
+    # Record audit log
+    await log_audit_event(
+        db=db,
+        action="BOOKING_CREATED",
+        resource_type="booking",
+        resource_id=booking.id,
+        new_values={
+            "booking_reference": booking.booking_reference,
+            "plot_number": plot.plot_number,
+            "status": booking.status,
+            "amount_paid": float(amount_paid),
+            "customer": req.customer_name or "Client",
+        },
+    )
 
     # Commit all 3 tables atomically
     await db.commit()

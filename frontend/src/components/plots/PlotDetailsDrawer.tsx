@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plot } from '../../types';
-import { X, MapPin, Square, Compass, DollarSign, Calendar, User, Handshake, Clock, CheckCircle, AlertCircle, Sparkles, Lock } from 'lucide-react';
+import { X, MapPin, Square, Compass, IndianRupee, Calendar, User, Handshake, Clock, CheckCircle, AlertCircle, Sparkles, Lock } from 'lucide-react';
 import { StatusBadge, ConfirmationModal } from '../ui/UIComponents';
 import { formatCurrencyFull, getDaysRemaining } from '../../utils/helpers';
 import { usePlotStore } from '../../store/plotStore';
@@ -115,7 +115,7 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
                 { icon: Square, label: 'Dimensions', value: plot.dimensions || '30×50' },
                 { icon: Compass, label: 'Facing', value: plot.facing || 'East' },
                 { icon: MapPin, label: 'Road Width', value: plot.roadWidth || '20 ft' },
-                { icon: DollarSign, label: 'Price/sq.ft', value: `₹${plot.pricePerSqft.toLocaleString('en-IN')}` },
+                { icon: IndianRupee, label: 'Price/sq.ft', value: `₹${plot.pricePerSqft.toLocaleString('en-IN')}` },
               ].map((item) => (
                 <div key={item.label} className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
                   <div className="flex items-center gap-1.5 text-slate-400 mb-0.5">
@@ -175,13 +175,13 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
                   <InfoRow icon={Handshake} label="Channel Partner" value={plot.channelPartnerName} />
                 )}
                 {plot.tokenAmount !== undefined && plot.tokenAmount > 0 && (
-                  <InfoRow icon={DollarSign} label="Token Paid" value={formatCurrencyFull(plot.tokenAmount)} highlight="green" />
+                  <InfoRow icon={IndianRupee} label="Token Paid" value={formatCurrencyFull(plot.tokenAmount)} highlight="green" />
                 )}
                 {plot.totalPaid !== undefined && plot.totalPaid > 0 && (
-                  <InfoRow icon={DollarSign} label="Total Paid" value={formatCurrencyFull(plot.totalPaid)} highlight="green" />
+                  <InfoRow icon={IndianRupee} label="Total Paid" value={formatCurrencyFull(plot.totalPaid)} highlight="green" />
                 )}
                 {plot.balanceDue !== undefined && plot.balanceDue > 0 && (
-                  <InfoRow icon={DollarSign} label="Balance Due" value={formatCurrencyFull(plot.balanceDue)} highlight="red" />
+                  <InfoRow icon={IndianRupee} label="Balance Due" value={formatCurrencyFull(plot.balanceDue)} highlight="red" />
                 )}
 
                 {/* 1. Token Expiry Banner (Yellow - 7 Days) */}
