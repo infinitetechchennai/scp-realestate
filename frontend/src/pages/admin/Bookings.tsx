@@ -108,18 +108,39 @@ export const AdminBookings: React.FC = () => {
                       {b.customer_phone && <div className="text-[10px] text-slate-400 font-mono">{b.customer_phone}</div>}
                     </td>
                     <td className="px-4 py-3.5">
-                      {b.booked_by_name ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200/60 font-semibold text-[11px]">
-                          <span>👤 {b.booked_by_name}</span>
-                          <span className="text-[9px] bg-blue-200/60 text-blue-800 px-1.5 py-0.2 rounded font-bold uppercase">Staff</span>
-                        </div>
-                      ) : b.channel_partner_name ? (
-                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-900 border border-purple-200/60 font-semibold text-[11px]">
-                          <span>🤝 {b.channel_partner_name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic">Direct / Super Admin</span>
-                      )}
+                      {(() => {
+                        const isPartner =
+                          b.channel_partner_name ||
+                          b.channel_partner_id ||
+                          b.booked_by_role === 'channel_partner' ||
+                          b.booked_by_role === 'Channel Partner' ||
+                          (b.booked_by_name && b.booked_by_name.toLowerCase().startsWith('cp'));
+
+                        if (isPartner) {
+                          const partnerDisplayName = b.channel_partner_name || b.booked_by_name || 'Channel Partner';
+                          return (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-900 border border-purple-200/80 font-semibold text-[11px]">
+                              <span>🤝 {partnerDisplayName}</span>
+                              <span className="text-[9px] bg-purple-200/80 text-purple-900 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
+                                Partner
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        if (b.booked_by_name) {
+                          return (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200/60 font-semibold text-[11px]">
+                              <span>👤 {b.booked_by_name}</span>
+                              <span className="text-[9px] bg-blue-200/60 text-blue-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
+                                {b.booked_by_role || 'Staff'}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return <span className="text-slate-400 italic font-medium">Direct / Super Admin</span>;
+                      })()}
                     </td>
                     <td className="px-3 py-3.5 text-slate-500 font-mono">
                       {b.created_at ? new Date(b.created_at).toLocaleDateString() : '—'}

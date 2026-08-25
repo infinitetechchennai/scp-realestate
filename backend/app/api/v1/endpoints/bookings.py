@@ -59,6 +59,10 @@ async def list_bookings(
                 booked_by_role = first_r.name if first_r else "Employee"
             else:
                 booked_by_role = "Employee / Staff"
+            
+            # If no channel partner linked yet, but booked by a channel partner user
+            if not cp_name and (booked_by_role == "channel_partner" or booked_by_role == "Channel Partner"):
+                cp_name = booked_by_name
         elif b.channel_partner:
             booked_by_name = cp_name
             booked_by_role = "Channel Partner"
@@ -247,7 +251,7 @@ async def create_booking(
         if cp_obj:
             cp_id = cp_obj.id
 
-    # 2.2 Resolve Booked-by User ID (Employee / Staff / Admin)
+    # 2.2 Resolve Booked-by User ID (Employee / Staff / Admin / Channel Partner)
     booked_by_uid = None
     booked_by_user_obj = None
     if req.booked_by_user_id:
@@ -258,6 +262,12 @@ async def create_booking(
             booked_by_user_obj = u_res.scalar_one_or_none()
             if booked_by_user_obj:
                 booked_by_uid = booked_by_user_obj.id
+                if not cp_id:
+                    cp_u_stmt = select(ChannelPartner).where(ChannelPartner.user_id == booked_by_uid)
+                    cp_u_res = await db.execute(cp_u_stmt)
+                    cp_u_obj = cp_u_res.scalar_one_or_none()
+                    if cp_u_obj:
+                        cp_id = cp_u_obj.id
         except Exception:
             pass
 
