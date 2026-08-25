@@ -8,6 +8,8 @@ import { usePlotStore } from "../../store/plotStore";
 import { parsePlotCsv } from "../../utils/csvParser";
 import toast from "react-hot-toast";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 export const AdminProjects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ export const AdminProjects: React.FC = () => {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/projects/");
+      const res = await fetch(`${API_BASE_URL}/projects/`);
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
@@ -67,7 +69,7 @@ export const AdminProjects: React.FC = () => {
   // Handle Export Live Database CSV
   const handleExportCsv = async (proj: Project) => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/plots/export-csv");
+      const res = await fetch(`${API_BASE_URL}/plots/export-csv`);
       if (res.ok) {
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
@@ -232,7 +234,7 @@ export const AdminProjects: React.FC = () => {
     try {
       if (isEditing && editingProjectId) {
         // 1. Update Project in PostgreSQL (cascades to all 184 plots)
-        const res = await fetch("http://localhost:8000/api/v1/projects/" + editingProjectId, {
+        const res = await fetch(`${API_BASE_URL}/projects/${editingProjectId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -261,7 +263,7 @@ export const AdminProjects: React.FC = () => {
         if (csvFileToUpload) {
           const formData = new FormData();
           formData.append("file", csvFileToUpload);
-          await fetch("http://localhost:8000/api/v1/plots/upload-csv", {
+          await fetch(`${API_BASE_URL}/plots/upload-csv`, {
             method: "POST",
             body: formData,
           });
@@ -270,7 +272,7 @@ export const AdminProjects: React.FC = () => {
         toast.success("✓ Project details updated & cascaded to all 184 plots in PostgreSQL!");
       } else {
         // Create Mode
-        const res = await fetch("http://localhost:8000/api/v1/projects", {
+        const res = await fetch(`${API_BASE_URL}/projects`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -293,7 +295,7 @@ export const AdminProjects: React.FC = () => {
         if (csvFileToUpload) {
           const formData = new FormData();
           formData.append("file", csvFileToUpload);
-          await fetch("http://localhost:8000/api/v1/plots/upload-csv", {
+          await fetch(`${API_BASE_URL}/plots/upload-csv`, {
             method: "POST",
             body: formData,
           });

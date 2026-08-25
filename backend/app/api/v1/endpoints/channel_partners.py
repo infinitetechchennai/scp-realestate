@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.models.user import User
 from app.models.channel_partner import ChannelPartner
+from app.models.payment import Payment
 from app.schemas.partner import PartnerListItem, PartnerKycDetail, PartnerApprovalRequest
 from app.api.deps import require_role
 from app.utils.audit import log_audit_event
@@ -57,7 +58,7 @@ async def list_channel_partners(
         p_lname = p.last_name or (p.user.last_name if p.user else "")
         p_email = p.email or (p.user.email if p.user else "")
         p_phone = p.phone or (p.user.phone if p.user else None)
-        is_paid = (p.id in paid_partner_ids) or (p.registration_paid is True and p.id in paid_partner_ids)
+        is_paid = bool(p.registration_paid) or (p.id in paid_partner_ids)
 
         items.append(
             PartnerListItem(
@@ -105,6 +106,7 @@ async def get_channel_partner_kyc(
             "account_number": b.account_number_encrypted or "XXXX-XXXX",
             "ifsc_code": b.ifsc_code,
             "account_holder_name": b.account_holder_name,
+            "is_primary": getattr(b, "is_primary", True),
         })
 
     p_fname = partner.first_name or (partner.user.first_name if partner.user else "")
@@ -122,6 +124,32 @@ async def get_channel_partner_kyc(
     )
     is_paid = (pay_chk.scalar_one_or_none() is not None) or (partner.registration_paid is True)
 
+    # Fetch uploaded document files from app.entity_documents
+    from app.models.document import EntityDocument, File as FileModel
+    doc_stmt = (
+        select(EntityDocument, FileModel)
+        .join(FileModel, EntityDocument.file_id == FileModel.id)
+        .where(
+            EntityDocument.entity_id == partner.id,
+            EntityDocument.entity_type == "channel_partner"
+        )
+        .order_by(EntityDocument.created_at.desc())
+    )
+    doc_res = await db.execute(doc_stmt)
+    rows = doc_res.all()
+
+    aadhar_file_url = None
+    aadhar_mime_type = None
+    pan_file_url = None
+    pan_mime_type = None
+    for d, f in rows:
+        if d.document_type in ["aadhaar", "aadhar"] and not aadhar_file_url:
+            aadhar_file_url = f"/api/v1/documents/{d.file_id}/download"
+            aadhar_mime_type = f.mime_type or ("application/pdf" if f.original_file_name.lower().endswith(".pdf") else "image/jpeg")
+        elif d.document_type == "pan" and not pan_file_url:
+            pan_file_url = f"/api/v1/documents/{d.file_id}/download"
+            pan_mime_type = f.mime_type or ("application/pdf" if f.original_file_name.lower().endswith(".pdf") else "image/jpeg")
+
     return PartnerKycDetail(
         id=partner.id,
         user_id=partner.user_id,
@@ -136,6 +164,10 @@ async def get_channel_partner_kyc(
         pincode=partner.postal_code,
         aadhar_number=partner.aadhaar_encrypted or (f"XXXX-XXXX-{partner.aadhaar_last4}" if partner.aadhaar_last4 else None),
         pan_number=partner.pan_encrypted or (f"XXXXXX{partner.pan_last4}" if partner.pan_last4 else None),
+        aadhar_file_url=aadhar_file_url,
+        aadhar_mime_type=aadhar_mime_type,
+        pan_file_url=pan_file_url,
+        pan_mime_type=pan_mime_type,
         status=partner.status,
         rejection_reason=None,
         registration_fee_paid=is_paid,

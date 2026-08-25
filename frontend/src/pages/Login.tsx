@@ -11,7 +11,6 @@ import { UserRole, ChannelPartner } from '../types';
 import { Modal } from '../components/ui/UIComponents';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
-import { PartnerKycPaymentModal } from '../components/channel/PartnerKycPaymentModal';
 
 export const LoginPage: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'register_partner'>('login');
@@ -24,8 +23,6 @@ export const LoginPage: React.FC = () => {
   // KYC Pending / Rejected Modal state
   const [kycModalPartner, setKycModalPartner] = useState<Partial<ChannelPartner> | null>(null);
   const [kycModalStatus, setKycModalStatus] = useState<'pending' | 'rejected' | 'suspended' | 'approved' | null>(null);
-  const [paymentModalPartner, setPaymentModalPartner] = useState<any | null>(null);
-  const [regPaid, setRegPaid] = useState(false);
 
   // Partner Registration Form State
   const [regForm, setRegForm] = useState({
@@ -67,7 +64,7 @@ export const LoginPage: React.FC = () => {
         setTimeout(() => {
           if (role === 'super_admin') navigate('/admin/dashboard');
           else if (role === 'channel_partner') navigate('/channel/dashboard');
-          else navigate('/customer/dashboard');
+          else navigate('/user/dashboard');
         }, 250);
       } else {
         // If Channel Partner KYC is not approved yet (pending or rejected)
@@ -138,19 +135,21 @@ export const LoginPage: React.FC = () => {
         ifsc_code: regForm.ifscCode ? regForm.ifscCode.toUpperCase() : undefined,
       });
 
+      const partnerId = regRes?.partner_id || regRes?.id;
+
       // 1. Upload physical Aadhaar file to backend /uploads/kyc
-      if (regForm.aadharRawFile) {
+      if (regForm.aadharRawFile && partnerId) {
         try {
-          await api.documents.upload(regForm.aadharRawFile, 'aadhaar');
+          await api.documents.upload(regForm.aadharRawFile, 'aadhaar', 'channel_partner', partnerId);
         } catch (uploadErr) {
           console.warn('Backend file upload note:', uploadErr);
         }
       }
 
       // 2. Upload physical PAN file to backend /uploads/kyc
-      if (regForm.panRawFile) {
+      if (regForm.panRawFile && partnerId) {
         try {
-          await api.documents.upload(regForm.panRawFile, 'pan');
+          await api.documents.upload(regForm.panRawFile, 'pan', 'channel_partner', partnerId);
         } catch (uploadErr) {
           console.warn('Backend file upload note:', uploadErr);
         }
@@ -167,18 +166,8 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('kyc_file_pan_latest', regForm.panDataUrl);
       }
 
-      toast.success('✓ Registration submitted! Please complete the ₹500 KYC Fee payment.');
+      toast.success('✓ Registration submitted! Your KYC application is under Admin review.');
       setRegSuccess(true);
-
-      // Open Google Pay QR Modal immediately
-      setPaymentModalPartner({
-        id: regRes?.partner_id || regRes?.id || 'new',
-        company_name: regForm.companyName,
-        name: regForm.name,
-        email: regForm.email,
-        phone: regForm.phone,
-        registration_fee_paid: false,
-      });
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit registration');
     } finally {
@@ -323,17 +312,26 @@ export const LoginPage: React.FC = () => {
                 <div>
                   <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-2">Sign In As</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(['super_admin', 'channel_partner', 'customer'] as UserRole[]).map(r => (
+                    {(['super_admin', 'channel_partner', 'user'] as UserRole[]).map(r => (
                       <button
                         key={r}
                         type="button"
-                        onClick={() => setRole(r)}
+                        onClick={() => {
+                          setRole(r);
+                          if (r === 'super_admin') {
+                            setEmail('admin@example.com');
+                            setPassword('admin123');
+                          } else if (r === 'user') {
+                            setEmail('employee@example.com');
+                            setPassword('employee123');
+                          }
+                        }}
                         className={`py-2.5 px-2 rounded-xl border-2 text-xs font-bold transition-all ${role === r
                           ? 'border-blue-600 bg-blue-50 text-blue-900 shadow-xs'
                           : 'border-slate-200 text-slate-600 hover:border-sky-300 hover:bg-slate-50'
                           }`}
                       >
-                        {r === 'super_admin' ? 'Super Admin' : r === 'channel_partner' ? 'Channel Partner' : 'Customer'}
+                        {r === 'super_admin' ? 'Super Admin' : r === 'channel_partner' ? 'Channel Partner' : 'Employee / Staff'}
                       </button>
                     ))}
                   </div>
@@ -410,37 +408,17 @@ export const LoginPage: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Payment Status Card */}
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 max-w-sm mx-auto text-left">
+                  {/* Application Status Card */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 max-w-sm mx-auto text-left">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">KYC Onboarding Fee:</span>
-                      <span className="text-xs font-black text-slate-900">₹500.00</span>
+                      <span className="text-xs font-bold text-slate-700">Application Status:</span>
+                      <span className="text-xs font-black text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                        Pending Admin Review
+                      </span>
                     </div>
-                    {regPaid ? (
-                      <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                        <CheckCircle size={14} className="text-emerald-600" />
-                        <span>✓ ₹500 Onboarding Fee Confirmed</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 font-medium">
-                          Registration fee pending. Scan Google Pay QR code to complete onboarding.
-                        </div>
-                        <button
-                          onClick={() => setPaymentModalPartner({
-                            id: 'new',
-                            company_name: regForm.companyName,
-                            name: regForm.name,
-                            email: regForm.email,
-                            phone: regForm.phone,
-                          })}
-                          className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all"
-                        >
-                          <QrCode size={14} />
-                          <span>Scan ₹500 Google Pay QR</span>
-                        </button>
-                      </div>
-                    )}
+                    <p className="text-[11px] text-slate-500">
+                      Your agency profile and uploaded Aadhaar & PAN document scans have been received. Super Admin will review your KYC and activate your login credentials.
+                    </p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left text-xs space-y-2 max-w-sm mx-auto">
@@ -855,22 +833,6 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
         </Modal>
-      )}
-
-      {/* Google Pay / UPI ₹500 KYC Fee QR Modal for Channel Partner */}
-      {paymentModalPartner && (
-        <PartnerKycPaymentModal
-          isOpen={!!paymentModalPartner}
-          onClose={() => {
-            setPaymentModalPartner(null);
-            setRegSuccess(true);
-          }}
-          partner={paymentModalPartner}
-          onPaymentSuccess={() => {
-            setRegPaid(true);
-            toast.success('✓ ₹500 KYC Fee Paid successfully!');
-          }}
-        />
       )}
     </div>
   );

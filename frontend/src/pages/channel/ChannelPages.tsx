@@ -1,22 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePlotStore } from '../../store/plotStore';
-import { useCustomerStore, useBookingStore, usePaymentStore, useNotificationStore } from '../../store/stores';
 import { useAuthStore } from '../../store/authStore';
 import { StatusBadge, Modal } from '../../components/ui/UIComponents';
 import { PlotDetailsDrawer } from '../../components/plots/PlotDetailsDrawer';
 import { Plot } from '../../types';
-import { Search, UserPlus, Award, TrendingUp, FolderOpen, Bell, User, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, UserPlus, Award, TrendingUp, FolderOpen, Bell, User, Phone, Mail, MapPin, Printer, FileSpreadsheet, IndianRupee, Clock } from 'lucide-react';
 import { formatCurrencyFull, generateId } from '../../utils/helpers';
 import { mockProjects, mockDocuments } from '../../data/mockData';
 import { PlotMap } from '../../components/plots/PlotMap';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
+import { PaymentReceiptModal, ReceiptData } from '../../components/booking/PaymentReceiptModal';
+
+const isMyChannelBooking = (b: any, user: any) => {
+  if (!user) return false;
+  const userName = (user.name || '').trim().toLowerCase();
+  const userEmail = (user.email || '').trim().toLowerCase();
+  const userId = user.id;
+
+  const bCpId = b.channel_partner_id || b.channelPartnerId;
+  const bCpName = (b.channel_partner_name || b.channelPartnerName || '').trim().toLowerCase();
+
+  if (userId && bCpId === userId) return true;
+  if (userName && bCpName && (bCpName === userName || bCpName.includes(userName) || userName.includes(bCpName))) return true;
+  if (userEmail && bCpName && (bCpName === userEmail || bCpName.includes(userEmail))) return true;
+
+  return false;
+};
+
+const isMyChannelPayment = (p: any, user: any, myBookingIds: Set<string>) => {
+  if (!user) return false;
+  const userName = (user.name || '').trim().toLowerCase();
+  const userId = user.id;
+
+  if (p.booking_id && myBookingIds.has(p.booking_id)) return true;
+  if (userId && p.channel_partner_id === userId) return true;
+  const pCpName = (p.channel_partner_name || '').trim().toLowerCase();
+  if (userName && pCpName && (pCpName === userName || pCpName.includes(userName))) return true;
+
+  return false;
+};
 
 export const ChannelPlots: React.FC = () => {
   const { plots, fetchPlots } = usePlotStore();
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchPlots();
   }, []);
 
@@ -37,7 +66,7 @@ export const ChannelPlots: React.FC = () => {
 export const ChannelProjects: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchLive = async () => {
       try {
         const res = await api.projects.list();
@@ -84,33 +113,60 @@ export const ChannelProjects: React.FC = () => {
 };
 
 export const ChannelCustomers: React.FC = () => {
-  const { customers, addCustomer } = useCustomerStore();
+  const { user } = useAuthStore();
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' });
 
-  const filtered = customers.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search));
+  useEffect(() => {
+    Promise.all([
+      api.customers.list().catch(() => []),
+      api.bookings.list().catch(() => []),
+    ]).then(([custList, bookList]) => {
+      setCustomers(custList || []);
+      setBookings(bookList || []);
+    }).finally(() => setLoading(false));
+  }, []);
 
-  const handleAdd = () => {
+  const myBookings = bookings.filter(b => isMyChannelBooking(b, user));
+  const myBookingCustomerIds = new Set(myBookings.map(b => b.customer_id || b.customerId));
+
+  const myCustomers = customers.filter(c => {
+    if (!user) return false;
+    const userName = (user.name || '').trim().toLowerCase();
+    const userId = user.id;
+
+    if (userId && c.assigned_partner_id === userId) return true;
+    if (userName && c.assigned_partner_name && c.assigned_partner_name.toLowerCase().includes(userName)) return true;
+    if (myBookingCustomerIds.has(c.id)) return true;
+    return false;
+  });
+
+  const filtered = myCustomers.filter(c => !search || (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search));
+
+  const handleAdd = async () => {
     if (!form.name || !form.phone) { toast.error('Name and phone are required'); return; }
-    addCustomer({
-      id: generateId('cust'),
-      name: form.name,
-      phone: form.phone,
-      email: form.email || `${form.name.toLowerCase().replace(' ', '')}@example.com`,
-      address: form.address,
-      aadhar: 'XXXX-XXXX-XXXX',
-      pan: 'ABCDE1234F',
-      plotIds: [],
-      bookingIds: [],
-      totalPaid: 0,
-      totalBalance: 0,
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0],
-    });
-    toast.success('✓ Client registered successfully');
-    setShowAdd(false);
-    setForm({ name: '', phone: '', email: '', address: '' });
+    try {
+      await api.customers.create({
+        first_name: form.name.split(' ')[0],
+        last_name: form.name.split(' ').slice(1).join(' ') || '',
+        phone: form.phone,
+        email: form.email || `${form.name.toLowerCase().replace(/\s+/g, '')}@example.com`,
+        address_line_1: form.address,
+        assigned_channel_partner_id: user?.id,
+      });
+      toast.success('✓ Client registered under your partner account');
+      setShowAdd(false);
+      setForm({ name: '', phone: '', email: '', address: '' });
+      // Refresh
+      const updated = await api.customers.list().catch(() => []);
+      setCustomers(updated || []);
+    } catch {
+      toast.error('Failed to create customer');
+    }
   };
 
   return (
@@ -122,7 +178,7 @@ export const ChannelCustomers: React.FC = () => {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-blue-500/20"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-blue-500/20 cursor-pointer"
         >
           <UserPlus size={16} />
           Add Client
@@ -148,16 +204,22 @@ export const ChannelCustomers: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filtered.map(c => (
-              <tr key={c.id} className="table-row-hover">
-                <td className="px-6 py-3.5 font-bold text-slate-900">{c.name}</td>
-                <td className="px-4 py-3.5 text-slate-700 font-medium">{c.phone}</td>
-                <td className="px-4 py-3.5 text-slate-500">{c.email}</td>
-                <td className="px-4 py-3.5 text-right font-medium">{c.plotIds.length}</td>
-                <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(c.totalPaid)}</td>
-                <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
-              </tr>
-            ))}
+            {loading ? (
+              <tr><td colSpan={6} className="text-center py-8 text-slate-400 font-medium">Loading your clients...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={6} className="text-center py-8 text-slate-400 font-medium">No clients registered under your agency yet.</td></tr>
+            ) : (
+              filtered.map(c => (
+                <tr key={c.id} className="table-row-hover">
+                  <td className="px-6 py-3.5 font-bold text-slate-900">{c.name}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{c.phone}</td>
+                  <td className="px-4 py-3.5 text-slate-500">{c.email}</td>
+                  <td className="px-4 py-3.5 text-right font-medium">{c.allocated_plots_count || (c.plotIds ? c.plotIds.length : 0)}</td>
+                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(c.total_paid || c.totalPaid || 0)}</td>
+                  <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -179,17 +241,47 @@ export const ChannelCustomers: React.FC = () => {
 };
 
 export const ChannelBookings: React.FC = () => {
-  const [bookings, setBookings] = React.useState<any[]>([]);
+  const { user } = useAuthStore();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
 
-  React.useEffect(() => {
-    api.bookings.list().then(data => setBookings(data || [])).catch(() => {});
+  useEffect(() => {
+    api.bookings.list()
+      .then(data => setBookings(data || []))
+      .catch(() => [])
+      .finally(() => setLoading(false));
   }, []);
+
+  const myBookings = bookings.filter(b => isMyChannelBooking(b, user));
+
+  const handleOpenReceipt = (b: any) => {
+    const receipt: ReceiptData = {
+      receiptNumber: `PAY-${(b.booking_reference || b.id).slice(0, 12)}`,
+      bookingReference: b.booking_reference || b.id,
+      date: b.created_at || new Date().toISOString(),
+      customerName: b.customer_name || 'Valued Client',
+      customerEmail: b.customer_email,
+      customerPhone: b.customer_phone,
+      plotNumber: b.plot_number || 'Plot',
+      projectName: b.project_name || 'Green Valley Township',
+      projectLocation: 'Chennai Highway, Tamil Nadu',
+      paymentType: b.status === 'token_paid' ? 'token_advance' : (b.status === 'sold' ? 'full_payment' : 'continue_payment'),
+      paymentMethod: 'UPI',
+      transactionId: `UPI-${b.id.slice(0, 8).toUpperCase()}`,
+      amountPaid: Number(b.amount_paid || 0),
+      balanceAmount: Number(b.balance_amount || 0),
+      deadlineDate: b.payment_deadline_at,
+      channelPartnerName: user?.name,
+    };
+    setSelectedReceipt(receipt);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-black text-slate-900">My Client Bookings</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Track status, token amounts, and balance schedules of all client bookings</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Track status, token amounts, and balance schedules of all bookings made through your agency</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -203,15 +295,18 @@ export const ChannelBookings: React.FC = () => {
               <th className="text-right px-4 py-3.5">Amount Paid</th>
               <th className="text-right px-4 py-3.5">Balance</th>
               <th className="text-left px-4 py-3.5">Status</th>
+              <th className="text-right px-6 py-3.5">Receipt</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {bookings.length === 0 ? (
+            {loading ? (
+              <tr><td colSpan={8} className="text-center py-8 text-slate-400 font-medium">Loading your client bookings...</td></tr>
+            ) : myBookings.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-slate-400 font-medium">No client bookings yet.</td>
+                <td colSpan={8} className="text-center py-8 text-slate-400 font-medium">No bookings recorded for your agency yet.</td>
               </tr>
             ) : (
-              bookings.slice(0, 10).map(b => (
+              myBookings.map(b => (
                 <tr key={b.id} className="table-row-hover">
                   <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
                   <td className="px-4 py-3.5 font-black text-slate-900">{b.plot_number || '—'}</td>
@@ -222,28 +317,81 @@ export const ChannelBookings: React.FC = () => {
                   <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid))}</td>
                   <td className="px-4 py-3.5 text-right font-black text-red-600">{Number(b.balance_amount) > 0 ? formatCurrencyFull(Number(b.balance_amount)) : '—'}</td>
                   <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
+                  <td className="px-6 py-3.5 text-right">
+                    <button
+                      onClick={() => handleOpenReceipt(b)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      <Printer size={13} />
+                      Receipt
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Receipt Modal */}
+      {selectedReceipt && (
+        <PaymentReceiptModal
+          receipt={selectedReceipt}
+          onClose={() => setSelectedReceipt(null)}
+        />
+      )}
     </div>
   );
 };
 
 export const ChannelPayments: React.FC = () => {
-  const [payments, setPayments] = React.useState<any[]>([]);
+  const { user } = useAuthStore();
+  const [payments, setPayments] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
 
-  React.useEffect(() => {
-    api.payments.list().then(data => setPayments(data || [])).catch(() => {});
+  useEffect(() => {
+    Promise.all([
+      api.payments.list().catch(() => []),
+      api.bookings.list().catch(() => []),
+    ]).then(([payData, bookData]) => {
+      setPayments(payData || []);
+      setBookings(bookData || []);
+    }).finally(() => setLoading(false));
   }, []);
+
+  const myBookings = bookings.filter(b => isMyChannelBooking(b, user));
+  const myBookingIds = new Set(myBookings.map(b => b.id));
+  const myPayments = payments.filter(p => isMyChannelPayment(p, user, myBookingIds));
+
+  const handleOpenReceipt = (p: any) => {
+    const linkedBooking = myBookings.find(b => b.id === p.booking_id) || {};
+    const receipt: ReceiptData = {
+      receiptNumber: p.payment_reference || `PAY-${p.id.slice(0, 8).toUpperCase()}`,
+      bookingReference: linkedBooking.booking_reference || linkedBooking.bookingReference,
+      date: p.payment_date || p.created_at || new Date().toISOString(),
+      customerName: p.customer_name || linkedBooking.customer_name || 'Valued Buyer',
+      customerEmail: linkedBooking.customer_email,
+      customerPhone: linkedBooking.customer_phone,
+      plotNumber: p.plot_number || linkedBooking.plot_number || 'Plot',
+      projectName: linkedBooking.project_name || 'Green Valley Township',
+      projectLocation: 'Chennai Highway, Tamil Nadu',
+      paymentType: p.payment_type || p.type || 'token_advance',
+      paymentMethod: p.payment_method || p.method || 'UPI',
+      transactionId: p.gateway_transaction_id || `UPI-${p.id.slice(0, 8).toUpperCase()}`,
+      amountPaid: Number(p.amount),
+      balanceAmount: linkedBooking.balance_amount ? Number(linkedBooking.balance_amount) : undefined,
+      channelPartnerName: user?.name,
+    };
+    setSelectedReceipt(receipt);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-black text-slate-900">Payment Audit Trail</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Live transaction records from PostgreSQL</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Live transaction records for your agency bookings</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -256,15 +404,18 @@ export const ChannelPayments: React.FC = () => {
               <th className="text-left px-4 py-3.5">Type</th>
               <th className="text-right px-4 py-3.5">Amount</th>
               <th className="text-left px-4 py-3.5">Status</th>
+              <th className="text-right px-6 py-3.5">Receipt</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {payments.length === 0 ? (
+            {loading ? (
+              <tr><td colSpan={7} className="text-center py-8 text-slate-400 font-medium">Loading transactions...</td></tr>
+            ) : myPayments.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-slate-400 font-medium">No payment transactions yet.</td>
+                <td colSpan={7} className="text-center py-8 text-slate-400 font-medium">No payment transactions recorded for your agency yet.</td>
               </tr>
             ) : (
-              payments.slice(0, 10).map(p => (
+              myPayments.map(p => (
                 <tr key={p.id} className="table-row-hover">
                   <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{p.payment_reference || p.id.slice(0, 8)}</td>
                   <td className="px-4 py-3.5 font-bold text-slate-900">{p.customer_name || 'Client'}</td>
@@ -272,12 +423,29 @@ export const ChannelPayments: React.FC = () => {
                   <td className="px-4 py-3.5 capitalize text-slate-600">{(p.payment_type || '').replace('_', ' ')}</td>
                   <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(p.amount))}</td>
                   <td className="px-4 py-3.5"><StatusBadge status={p.status} /></td>
+                  <td className="px-6 py-3.5 text-right">
+                    <button
+                      onClick={() => handleOpenReceipt(p)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      <Printer size={13} />
+                      Receipt
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Receipt Modal */}
+      {selectedReceipt && (
+        <PaymentReceiptModal
+          receipt={selectedReceipt}
+          onClose={() => setSelectedReceipt(null)}
+        />
+      )}
     </div>
   );
 };
@@ -307,6 +475,186 @@ export const ChannelCommission: React.FC = () => {
           <div className="text-xs text-sky-700 font-bold uppercase tracking-wider mt-1">Pending Approval</div>
         </div>
       </div>
+    </div>
+  );
+};
+
+export const ChannelReports: React.FC = () => {
+  const { user } = useAuthStore();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const { plots, fetchPlots } = usePlotStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPlots();
+    api.bookings.list()
+      .then(data => setBookings(data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const myBookings = bookings.filter(b => isMyChannelBooking(b, user));
+  const totalSalesValue = myBookings.reduce((sum, b) => sum + Number(b.total_amount || b.totalAmount || 0), 0);
+  const totalCollected = myBookings.reduce((sum, b) => sum + Number(b.amount_paid || b.amountPaid || 0), 0);
+  const commissionEarned = totalSalesValue * 0.025; // 2.5% standard commission
+
+  const exportPartnerSalesReport = () => {
+    try {
+      const headers = [
+        'Booking Reference',
+        'Plot Number',
+        'Buyer Name',
+        'Buyer Contact',
+        'Project Name',
+        'Plot Price (INR)',
+        'Amount Collected (INR)',
+        'Balance Due (INR)',
+        'Booking Status',
+        'Commission Rate',
+        'Commission Earned (INR)',
+        'Booking Date'
+      ];
+
+      const rows = myBookings.map(b => {
+        const plotNum = b.plot_number || b.plotNumber;
+        const total = Number(b.total_amount || b.totalAmount || 0);
+        const paid = Number(b.amount_paid || b.amountPaid || 0);
+        const balance = Number(b.balance_amount || b.balanceAmount || 0);
+        return [
+          `"${b.booking_reference || b.bookingReference || b.id}"`,
+          `"${plotNum || 'Plot'}"`,
+          `"${(b.customer_name || b.customerName || 'Client').replace(/"/g, '""')}"`,
+          `"${b.customer_email || b.customer_phone || ''}"`,
+          `"${b.project_name || b.projectName || 'Township Layout'}"`,
+          total,
+          paid,
+          balance,
+          `"${(b.status || 'token_paid').replace('_', ' ').toUpperCase()}"`,
+          '2.5%',
+          total * 0.025,
+          `"${b.created_at || b.booking_date ? new Date(b.created_at || b.booking_date).toLocaleDateString('en-IN') : ''}"`
+        ];
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      const dateStr = new Date().toISOString().slice(0, 10);
+      link.setAttribute('download', `Channel_Partner_Sales_Report_${dateStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('✓ Partner Sales report downloaded!');
+    } catch {
+      toast.error('Failed to export report');
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in max-w-5xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900">Partner Sales & Performance Reports</h1>
+          <p className="text-slate-500 text-xs font-medium mt-0.5">Summary of client plot reservations and commission earnings</p>
+        </div>
+        {myBookings.length > 0 && (
+          <button
+            onClick={exportPartnerSalesReport}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+          >
+            <FileSpreadsheet size={15} />
+            <span>Download Excel / CSV</span>
+          </button>
+        )}
+      </div>
+
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <Award size={18} className="text-blue-600 mb-2" />
+          <div className="text-2xl font-black text-slate-900">{myBookings.length}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Referred Plots</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <TrendingUp size={18} className="text-purple-600 mb-2" />
+          <div className="text-2xl font-black text-slate-900">{formatCurrencyFull(totalSalesValue)}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Total Sales Value</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <IndianRupee size={18} className="text-emerald-600 mb-2" />
+          <div className="text-2xl font-black text-emerald-700">{formatCurrencyFull(totalCollected)}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Client Collections</div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <IndianRupee size={18} className="text-indigo-600 mb-2" />
+          <div className="text-2xl font-black text-indigo-700">{formatCurrencyFull(commissionEarned)}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">Est. Commission (2.5%)</div>
+        </div>
+      </div>
+
+      {/* Sales Table */}
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-400">Loading your sales report...</div>
+      ) : myBookings.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
+          <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+            <FolderOpen size={28} />
+          </div>
+          <h3 className="text-sm font-black text-slate-800">No Client Sales Yet</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            You haven't referred or booked any plots for clients yet. View our available master layout to pitch to buyers.
+          </p>
+          <a
+            href="/channel/plots"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-sm transition-all mt-2"
+          >
+            Available Plots for Sale
+          </a>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Client Sales Performance Log</h3>
+            <span className="text-xs text-slate-400 font-bold">{myBookings.length} Total Bookings</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                  <th className="text-left px-4 py-3">Plot No</th>
+                  <th className="text-left px-4 py-3">Buyer Name</th>
+                  <th className="text-left px-4 py-3">Booking Ref</th>
+                  <th className="text-right px-4 py-3">Plot Value</th>
+                  <th className="text-right px-4 py-3">Amount Collected</th>
+                  <th className="text-right px-4 py-3">Commission (2.5%)</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {myBookings.map(b => {
+                  const plotNum = b.plot_number || b.plotNumber;
+                  const total = Number(b.total_amount || b.totalAmount || 0);
+                  const paid = Number(b.amount_paid || b.amountPaid || 0);
+                  return (
+                    <tr key={b.id} className="table-row-hover">
+                      <td className="px-4 py-3 font-black text-slate-900">{plotNum || 'Plot'}</td>
+                      <td className="px-4 py-3 font-bold text-slate-800">{b.customer_name || b.customerName || 'Client'}</td>
+                      <td className="px-4 py-3 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
+                      <td className="px-4 py-3 text-right font-black text-slate-900">{formatCurrencyFull(total)}</td>
+                      <td className="px-4 py-3 text-right font-black text-emerald-700">{formatCurrencyFull(paid)}</td>
+                      <td className="px-4 py-3 text-right font-black text-indigo-700">{formatCurrencyFull(total * 0.025)}</td>
+                      <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

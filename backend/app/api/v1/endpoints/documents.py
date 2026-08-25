@@ -67,7 +67,7 @@ async def upload_document(
             entity_type=entity_type,
             entity_id=entity_id,
             document_type=document_type,
-            status="pending",
+            status="pending_verification",
         )
         db.add(entity_doc)
         await db.flush()
@@ -107,6 +107,7 @@ async def download_document(
 
     return FileResponse(
         path=file_rec.storage_key,
-        media_type=file_rec.mime_type,
+        media_type=file_rec.mime_type or "application/octet-stream",
+        content_disposition_type="inline",
         filename=file_rec.original_file_name
     )

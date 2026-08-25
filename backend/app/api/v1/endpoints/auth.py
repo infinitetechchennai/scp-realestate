@@ -47,13 +47,18 @@ async def login(
     
     # Verify requested role matches user's actual roles
     req_role = login_data.role.lower()
-    if req_role not in user_roles and "super_admin" not in user_roles:
+    has_role_match = (
+        req_role in user_roles
+        or "super_admin" in user_roles
+        or (req_role in ["user", "employee"] and any(r in user_roles for r in ["user", "employee", "customer"]))
+    )
+    if not has_role_match:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"User is not registered with role '{login_data.role}'",
         )
 
-    primary_role = req_role
+    primary_role = "user" if req_role in ["user", "employee"] else req_role
 
     # 3. Channel Partner KYC Verification Gatekeeping
     if primary_role == "channel_partner":
@@ -151,6 +156,27 @@ async def register_channel_partner(
             detail="A user with this email address already exists.",
         )
 
+    clean_aadhar = req.aadhar_number.replace(" ", "")
+    clean_pan = req.pan_number.upper()
+    aadhaar_hash = hashlib.sha256(clean_aadhar.encode("utf-8")).hexdigest()
+    pan_hash = hashlib.sha256(clean_pan.encode("utf-8")).hexdigest()
+
+    # Check duplicate Aadhaar
+    dup_a = await db.execute(select(ChannelPartner.id).where(ChannelPartner.aadhaar_hash == aadhaar_hash).limit(1))
+    if dup_a.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A Channel Partner with this Aadhaar number is already registered.",
+        )
+
+    # Check duplicate PAN
+    dup_p = await db.execute(select(ChannelPartner.id).where(ChannelPartner.pan_hash == pan_hash).limit(1))
+    if dup_p.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A Channel Partner with this PAN number is already registered.",
+        )
+
     # 2. Find or create 'channel_partner' role
     stmt_role = select(Role).where((Role.code == "channel_partner") | (Role.name == "channel_partner") | (Role.name == "Channel Partner"))
     res_role = await db.execute(stmt_role)
@@ -178,12 +204,7 @@ async def register_channel_partner(
     db.add(user_role)
 
     # 5. Create Channel Partner Profile (status: pending)
-    clean_aadhar = req.aadhar_number.replace(" ", "")
-    clean_pan = req.pan_number.upper()
     partner_code = f"CP-{random.randint(1000, 9999)}"
-
-    aadhaar_hash = hashlib.sha256(clean_aadhar.encode("utf-8")).hexdigest()
-    pan_hash = hashlib.sha256(clean_pan.encode("utf-8")).hexdigest()
 
     new_partner = ChannelPartner(
         user_id=new_user.id,

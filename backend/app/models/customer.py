@@ -1,16 +1,21 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, DateTime, ForeignKey, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.channel_partner import ChannelPartner
+    from app.models.booking import Booking
+
 class Customer(Base):
     __tablename__ = "customers"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("app.users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("app.users.id", ondelete="SET NULL"), nullable=True)
     
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -40,5 +45,6 @@ class Customer(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="selectin")
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id], lazy="selectin")
     channel_partner: Mapped[Optional["ChannelPartner"]] = relationship("ChannelPartner", foreign_keys=[assigned_channel_partner_id], lazy="selectin")
+    bookings: Mapped[list["Booking"]] = relationship("Booking", back_populates="customer", lazy="selectin")

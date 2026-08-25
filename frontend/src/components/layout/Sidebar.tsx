@@ -37,18 +37,20 @@ const channelNav: NavItem[] = [
   { label: 'Available Plots', icon: Map, to: '/channel/plots' },
   { label: 'My Bookings', icon: BookOpen, to: '/channel/bookings' },
   { label: 'Payments', icon: CreditCard, to: '/channel/payments' },
+  { label: 'Reports', icon: FileBarChart, to: '/channel/reports' },
   { label: 'Documents', icon: FolderOpen, to: '/channel/documents' },
   { label: 'Profile', icon: UserCircle, to: '/channel/profile' },
 ];
 
-const customerNav: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, to: '/customer/dashboard' },
-  { label: 'Projects', icon: Building2, to: '/customer/projects' },
-  { label: 'Browse Plots', icon: Map, to: '/customer/plots' },
-  { label: 'My Bookings', icon: BookOpen, to: '/customer/bookings' },
-  { label: 'Payments', icon: IndianRupee, to: '/customer/payments' },
-  { label: 'Documents', icon: FolderOpen, to: '/customer/documents' },
-  { label: 'Profile', icon: UserCircle, to: '/customer/profile' },
+const employeeNav: NavItem[] = [
+  { label: 'Dashboard', icon: LayoutDashboard, to: '/user/dashboard' },
+  { label: 'Browse & Book Plots', icon: Map, to: '/user/plots' },
+  { label: 'My Bookings', icon: BookOpen, to: '/user/bookings' },
+  { label: 'Customer Directory', icon: Users, to: '/user/customers' },
+  { label: 'Payments', icon: IndianRupee, to: '/user/payments' },
+  { label: 'Projects', icon: Building2, to: '/user/projects' },
+  { label: 'Reports', icon: FileBarChart, to: '/user/reports' },
+  { label: 'Profile', icon: UserCircle, to: '/user/profile' },
 ];
 
 interface SidebarProps {
@@ -78,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? adminNav
     : user?.role === 'channel_partner'
     ? channelNav
-    : customerNav;
+    : employeeNav;
 
   const handleLogout = () => {
     logout();
@@ -156,7 +158,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-slate-200 text-xs font-bold truncate">{user?.name}</div>
-              <div className="text-slate-400 text-[10px] truncate capitalize">{user?.role?.replace('_', ' ')}</div>
+              <div className="text-sky-400 text-[10px] truncate font-medium">
+                {user?.role === 'super_admin' ? 'Super Administrator' : user?.role === 'channel_partner' ? 'Channel Partner' : 'Sales Executive'}
+              </div>
             </div>
           </div>
         )}

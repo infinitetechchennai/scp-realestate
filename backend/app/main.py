@@ -2,7 +2,7 @@ import uuid
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import get_password_hash
@@ -13,13 +13,23 @@ from app.api.v1.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Seed default roles and admin if not already present
+    # Startup: Run non-blocking migrations, seed default roles, admin, and employee
     async with AsyncSessionLocal() as session:
+        # Ensure schema columns exist
+        try:
+            await session.execute(text("ALTER TABLE app.bookings ADD COLUMN IF NOT EXISTS booked_by_user_id UUID REFERENCES app.users(id);"))
+            await session.execute(text("ALTER TABLE app.customers ALTER COLUMN user_id DROP NOT NULL;"))
+            await session.commit()
+        except Exception as e:
+            print("Schema migration note:", e)
+
         # Seed standard roles with both code and name
         roles_to_seed = [
             ("super_admin", "Super Admin", "Super Administrator with full portal privileges"),
             ("channel_partner", "Channel Partner", "Channel Partner / Real Estate Broker"),
-            ("customer", "Customer", "End customer / Plot buyer"),
+            ("user", "User / Employee", "Internal sales executive / staff member"),
+            ("employee", "Employee", "Sales Executive / Staff"),
+            ("customer", "Customer", "Customer / Buyer"),
         ]
         for role_code, role_name, desc in roles_to_seed:
             stmt = select(Role).where((Role.code == role_code) | (Role.name == role_name))
@@ -55,6 +65,29 @@ async def lifespan(app: FastAPI):
             if super_role:
                 user_role = UserRole(user_id=admin_user.id, role_id=super_role.id)
                 session.add(user_role)
+
+        # Seed default Employee / User if not exists
+        stmt_emp = select(User).where(User.email == "employee@example.com")
+        res_emp = await session.execute(stmt_emp)
+        emp_user = res_emp.scalar_one_or_none()
+
+        if not emp_user:
+            emp_user = User(
+                email="employee@example.com",
+                password_hash=get_password_hash("employee123"),
+                first_name="Karthik",
+                last_name="Employee",
+                phone="9876543211",
+                is_active=True,
+            )
+            session.add(emp_user)
+            await session.flush()
+
+            # Assign user and employee roles
+            stmt_user_role = select(Role).where((Role.code == "user") | (Role.code == "employee"))
+            res_user_roles = await session.execute(stmt_user_role)
+            for r in res_user_roles.scalars().all():
+                session.add(UserRole(user_id=emp_user.id, role_id=r.id))
 
         # Seed default project if not exists
         proj_uuid = uuid.UUID("c0000001-0000-0000-0000-000000000001")

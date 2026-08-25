@@ -206,20 +206,23 @@ export const api = {
 
   // Document Storage API
   documents: {
-    upload: async (file: File, documentType: 'aadhaar' | 'pan', entityId?: string) => {
+    upload: async (file: File, documentType: string, entityType = 'channel_partner', entityId?: string) => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('document_type', documentType);
-      formData.append('entity_type', 'channel_partner');
+      formData.append('entity_type', entityType);
       if (entityId) formData.append('entity_id', entityId);
 
       const res = await fetch(`${API_BASE_URL}/documents/upload`, {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`,
+        },
         body: formData,
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'File upload failed');
       }
       return await res.json();
@@ -414,6 +417,7 @@ export const api = {
       customer_email?: string;
       customer_id?: string;
       channel_partner_id?: string;
+      booked_by_user_id?: string;
       booking_type: 'token_advance' | 'partial_payment' | 'full_payment';
       amount_paid: number;
       payment_method?: string;

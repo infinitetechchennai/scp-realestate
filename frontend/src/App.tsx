@@ -31,14 +31,14 @@ import { ChannelDashboard } from './pages/channel/Dashboard';
 import {
   ChannelPlots, ChannelProjects, ChannelCustomers,
   ChannelBookings, ChannelPayments, ChannelCommission,
-  ChannelProfile, ChannelDocuments
+  ChannelProfile, ChannelDocuments, ChannelReports
 } from './pages/channel/ChannelPages';
 
 // Customer Pages
 import {
   CustomerDashboard, CustomerPlots, CustomerProjects,
   CustomerBookings, CustomerPayments, CustomerDocuments,
-  CustomerNotifications, CustomerProfile
+  CustomerNotifications, CustomerProfile, CustomerReports
 } from './pages/customer/CustomerPages';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({
@@ -50,7 +50,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     // Redirect to appropriate dashboard
     if (user.role === 'super_admin') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'channel_partner') return <Navigate to="/channel/dashboard" replace />;
-    return <Navigate to="/customer/dashboard" replace />;
+    return <Navigate to="/user/dashboard" replace />;
   }
   return <>{children}</>;
 };
@@ -60,7 +60,7 @@ const RootRedirect: React.FC = () => {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role === 'super_admin') return <Navigate to="/admin/dashboard" replace />;
   if (user?.role === 'channel_partner') return <Navigate to="/channel/dashboard" replace />;
-  return <Navigate to="/customer/dashboard" replace />;
+  return <Navigate to="/user/dashboard" replace />;
 };
 
 function App() {
@@ -120,13 +120,14 @@ function App() {
           <Route path="plots" element={<ChannelPlots />} />
           <Route path="bookings" element={<ChannelBookings />} />
           <Route path="payments" element={<ChannelPayments />} />
+          <Route path="reports" element={<ChannelReports />} />
           <Route path="documents" element={<ChannelDocuments />} />
           <Route path="profile" element={<ChannelProfile />} />
         </Route>
 
-        {/* Customer Routes */}
-        <Route path="/customer" element={
-          <ProtectedRoute allowedRoles={['customer']}>
+        {/* Employee / User Routes */}
+        <Route path="/user" element={
+          <ProtectedRoute allowedRoles={['user', 'employee', 'customer', 'super_admin']}>
             <AppLayout />
           </ProtectedRoute>
         }>
@@ -135,9 +136,21 @@ function App() {
           <Route path="projects" element={<CustomerProjects />} />
           <Route path="plots" element={<CustomerPlots />} />
           <Route path="bookings" element={<CustomerBookings />} />
+          <Route path="customers" element={<AdminCustomers />} />
           <Route path="payments" element={<CustomerPayments />} />
+          <Route path="reports" element={<CustomerReports />} />
           <Route path="documents" element={<CustomerDocuments />} />
           <Route path="profile" element={<CustomerProfile />} />
+        </Route>
+
+        {/* Legacy Customer Route Fallback */}
+        <Route path="/customer" element={
+          <ProtectedRoute allowedRoles={['customer', 'user', 'employee', 'super_admin']}>
+            <AppLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Navigate to="/user/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/user/dashboard" replace />} />
         </Route>
 
         {/* 404 */}

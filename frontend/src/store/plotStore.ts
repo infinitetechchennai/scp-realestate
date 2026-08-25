@@ -3,6 +3,8 @@ import { Plot, Project } from '../types';
 import { api } from '../services/api';
 import { addDays, format, isAfter } from 'date-fns';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 interface PlotState {
   plots: Plot[];
   projects: any[];
@@ -62,7 +64,7 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
   fetchPlots: async (projectId?: string) => {
     set({ loading: true });
     try {
-      const res = await fetch('http://localhost:8000/api/v1/plots/');
+      const res = await fetch(`${API_BASE_URL}/plots/`);
       if (res.ok) {
         const dbPlots = await res.json();
         if (Array.isArray(dbPlots) && dbPlots.length > 0) {
@@ -93,8 +95,15 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
               totalPaid: Number(p.amountPaid || p.amount_paid || 0),
               balanceDue: Number(p.balanceAmount || p.balance_amount || 0),
               paymentDeadline: p.balanceDueDate || undefined,
+              bookingId: p.bookingId || undefined,
+              bookingReference: p.bookingReference || undefined,
+              customerId: p.customerId || undefined,
               customerName: p.customerName || undefined,
-              channelPartnerName: p.partnerName || undefined,
+              customerEmail: p.customerEmail || undefined,
+              customerPhone: p.customerPhone || undefined,
+              channelPartnerId: p.channelPartnerId || undefined,
+              channelPartnerName: p.channelPartnerName || p.partnerName || undefined,
+              channelPartnerPhone: p.channelPartnerPhone || undefined,
             } as Plot;
           });
 

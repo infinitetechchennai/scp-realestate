@@ -29,6 +29,10 @@ interface PartnerDetail extends PartnerRow {
   city?: string;
   state?: string;
   pincode?: string;
+  aadhar_file_url?: string;
+  aadhar_mime_type?: string;
+  pan_file_url?: string;
+  pan_mime_type?: string;
   rejection_reason?: string;
   bank_accounts?: Array<{
     id: string;
@@ -149,26 +153,50 @@ export const AdminChannelPartners: React.FC = () => {
     }
   };
 
-  // Helper to retrieve uploaded file Data URL
-  const getUploadedFileUrl = (type: 'aadhar' | 'pan', email?: string) => {
-    if (email) {
-      const specific = localStorage.getItem(`kyc_file_${type}_${email.toLowerCase().trim()}`);
-      if (specific) return specific;
+  // Helper to retrieve uploaded file Data URL or Backend Stream URL
+  const getUploadedFileUrl = (type: 'aadhar' | 'pan', partner?: PartnerDetail) => {
+    if (partner) {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const backendHost = apiBase.replace(/\/api\/v1\/?$/, '');
+
+      if (type === 'aadhar' && partner.aadhar_file_url) {
+        return partner.aadhar_file_url.startsWith('http')
+          ? partner.aadhar_file_url
+          : `${backendHost}${partner.aadhar_file_url}`;
+      }
+      if (type === 'pan' && partner.pan_file_url) {
+        return partner.pan_file_url.startsWith('http')
+          ? partner.pan_file_url
+          : `${backendHost}${partner.pan_file_url}`;
+      }
+      if (partner.email) {
+        const specific = localStorage.getItem(`kyc_file_${type}_${partner.email.toLowerCase().trim()}`);
+        if (specific) return specific;
+      }
     }
     return localStorage.getItem(`kyc_file_${type}_latest`);
   };
 
-  // Attach a document on the fly if needed
-  const handleDirectUpload = (type: 'aadhar' | 'pan', email: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  // Attach a document directly to the partner record
+  const handleDirectUpload = async (type: 'aadhar' | 'pan', partner: PartnerDetail, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      try {
+        await api.documents.upload(file, type, 'channel_partner', partner.id);
+        toast.success(`✓ Attached ${type.toUpperCase()} document scan to server`);
+        // Refresh partner detail from server
+        await loadPartnerDetail(partner.id);
+      } catch (uploadErr) {
+        console.warn('Backend upload note:', uploadErr);
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
-        localStorage.setItem(`kyc_file_${type}_${email.toLowerCase().trim()}`, dataUrl);
+        if (partner.email) {
+          localStorage.setItem(`kyc_file_${type}_${partner.email.toLowerCase().trim()}`, dataUrl);
+        }
         localStorage.setItem(`kyc_file_${type}_latest`, dataUrl);
-        toast.success(`✓ Attached ${type.toUpperCase()} document scan`);
-        // Trigger re-render
         if (previewDoc) {
           setPreviewDoc({ ...previewDoc });
         }
@@ -564,18 +592,32 @@ export const AdminChannelPartners: React.FC = () => {
 
             {/* Document Render Area */}
             {(() => {
-              const fileUrl = getUploadedFileUrl(previewDoc.type, previewDoc.partner.email);
-              const isPdf = fileUrl && fileUrl.startsWith('data:application/pdf');
+              const fileUrl = getUploadedFileUrl(previewDoc.type, previewDoc.partner);
+              const mimeType = previewDoc.type === 'aadhar' ? previewDoc.partner.aadhar_mime_type : previewDoc.partner.pan_mime_type;
+              const isPdf = mimeType === 'application/pdf' || (fileUrl && (fileUrl.startsWith('data:application/pdf') || fileUrl.toLowerCase().includes('.pdf')));
 
               if (fileUrl && isPdf) {
                 // PDF Viewer
                 return (
-                  <div className="bg-slate-100 rounded-2xl border border-slate-300 p-2 overflow-hidden shadow-inner">
-                    <iframe
-                      src={fileUrl}
-                      title="Uploaded Document PDF"
-                      className="w-full h-[500px] rounded-xl bg-white border border-slate-200"
-                    />
+                  <div className="space-y-2">
+                    <div className="bg-slate-100 rounded-2xl border border-slate-300 p-1.5 overflow-hidden shadow-inner">
+                      <iframe
+                        src={`${fileUrl}#toolbar=1&navpanes=0`}
+                        title="Uploaded Document PDF"
+                        className="w-full h-[520px] rounded-xl bg-white border border-slate-200"
+                      />
+                    </div>
+                    <div className="flex items-center justify-end px-1">
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Open Document in Full New Tab</span>
+                      </a>
+                    </div>
                   </div>
                 );
               }
@@ -637,7 +679,7 @@ export const AdminChannelPartners: React.FC = () => {
                       <input
                         type="file"
                         accept=".pdf,.png,.jpg,.jpeg,.webp"
-                        onChange={e => handleDirectUpload(previewDoc.type, previewDoc.partner.email, e)}
+                        onChange={e => handleDirectUpload(previewDoc.type, previewDoc.partner, e)}
                         className="hidden"
                       />
                     </label>
@@ -654,15 +696,15 @@ export const AdminChannelPartners: React.FC = () => {
                 <input
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg,.webp"
-                  onChange={e => handleDirectUpload(previewDoc.type, previewDoc.partner.email, e)}
+                  onChange={e => handleDirectUpload(previewDoc.type, previewDoc.partner, e)}
                   className="hidden"
                 />
               </label>
 
               <div className="flex items-center gap-2">
-                {getUploadedFileUrl(previewDoc.type, previewDoc.partner.email) && (
+                {getUploadedFileUrl(previewDoc.type, previewDoc.partner) && (
                   <a
-                    href={getUploadedFileUrl(previewDoc.type, previewDoc.partner.email)!}
+                    href={getUploadedFileUrl(previewDoc.type, previewDoc.partner)!}
                     download={`${previewDoc.type}_${previewDoc.partner.company_name.replace(/\s+/g, '_')}`}
                     className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-blue-200"
                   >
@@ -672,7 +714,7 @@ export const AdminChannelPartners: React.FC = () => {
                 )}
                 <button
                   onClick={() => setPreviewDoc(null)}
-                  className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
                 >
                   Close
                 </button>

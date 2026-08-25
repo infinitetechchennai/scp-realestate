@@ -2,7 +2,7 @@
 // Core Types for Real Estate Plot Booking Management System
 // ============================================================
 
-export type UserRole = 'super_admin' | 'channel_partner' | 'customer';
+export type UserRole = 'super_admin' | 'channel_partner' | 'user' | 'employee' | 'customer';
 
 export type PlotStatus = 'available' | 'token_booked' | 'partial_booked' | 'confirmed' | 'sold';
 
@@ -64,13 +64,18 @@ export interface Project {
   country_code?: string;
   description: string;
   totalArea: string;
+  totalAreaSqft: number;
   total_area_sqft?: number;
   totalPlots: number;
+  total_plots?: number;
   availablePlots: number;
   tokenBookedPlots: number;
   confirmedPlots: number;
   soldPlots: number;
-  totalValue: number;
+  revenue: number;
+  collection: number;
+  outstanding: number;
+  totalValue?: number;
   status: 'active' | 'inactive' | 'completed';
   imageUrl?: string;
   layoutUrl?: string;
@@ -107,6 +112,10 @@ export interface Plot {
   customerPhone?: string;
   channelPartnerId?: string;
   channelPartnerName?: string;
+  bookedByUserId?: string;
+  booked_by_user_id?: string;
+  bookedByName?: string;
+  booked_by_name?: string;
   tokenAmount?: number;
   tokenDate?: string;
   tokenExpiry?: string;
@@ -180,8 +189,18 @@ export interface Booking {
   projectName: string;
   customerId: string;
   customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
   channelPartnerId?: string;
   channelPartnerName?: string;
+  bookedByUserId?: string;
+  booked_by_user_id?: string;
+  bookedByName?: string;
+  booked_by_name?: string;
+  bookedByEmail?: string;
+  booked_by_email?: string;
+  bookedByRole?: string;
+  booked_by_role?: string;
   bookingDate: string;
   paymentType: 'token' | 'continue' | 'full';
   status: BookingStatus;

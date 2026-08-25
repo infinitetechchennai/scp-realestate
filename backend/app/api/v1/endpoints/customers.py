@@ -24,9 +24,9 @@ async def list_customers(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
-    List all customers directly from PostgreSQL app.customers with assigned partner details.
+    List registered customer accounts directly from PostgreSQL app.customers with assigned partner details.
     """
-    stmt = select(Customer).order_by(Customer.created_at.desc())
+    stmt = select(Customer).where(Customer.user_id.is_not(None)).order_by(Customer.created_at.desc())
 
     if search:
         search_pattern = f"%{search.strip()}%"
@@ -50,6 +50,15 @@ async def list_customers(
         full_name = f"{c.first_name} {c.last_name or ''}".strip()
         partner_name = c.channel_partner.company_name if c.channel_partner else "Direct"
 
+        plot_count = 0
+        total_paid = 0.0
+        total_balance = 0.0
+        if c.bookings:
+            active_b = [b for b in c.bookings if b.status != "cancelled"]
+            plot_count = len(active_b)
+            total_paid = sum(float(b.amount_paid or 0) for b in active_b)
+            total_balance = sum(float(b.balance_amount or 0) for b in active_b)
+
         items.append(
             CustomerListItem(
                 id=c.id,
@@ -64,9 +73,9 @@ async def list_customers(
                 state=c.state,
                 assigned_partner_id=c.assigned_channel_partner_id,
                 assigned_partner_name=partner_name,
-                total_paid=0.0,
-                total_balance=0.0,
-                allocated_plots_count=0,
+                total_paid=total_paid,
+                total_balance=total_balance,
+                allocated_plots_count=plot_count,
                 status=c.status,
                 created_at=c.created_at,
             )

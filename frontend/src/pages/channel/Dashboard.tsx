@@ -1,34 +1,57 @@
-import React, { useEffect } from 'react';
-import { useChannelPartnerStore, useBookingStore, useNotificationStore } from '../../store/stores';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { useNotificationStore } from '../../store/stores';
 import { DashboardCard } from '../../components/ui/UIComponents';
 import { Users, BookOpen, CheckCircle, IndianRupee, Award, TrendingUp, Clock, Star, Sparkles, Megaphone } from 'lucide-react';
-import { formatCurrency } from '../../utils/helpers';
+import { formatCurrency, formatCurrencyFull } from '../../utils/helpers';
+import { api } from '../../services/api';
+
+const isMyChannelBooking = (b: any, user: any) => {
+  if (!user) return false;
+  const userName = (user.name || '').trim().toLowerCase();
+  const userEmail = (user.email || '').trim().toLowerCase();
+  const userId = user.id;
+
+  const bCpId = b.channel_partner_id || b.channelPartnerId;
+  const bCpName = (b.channel_partner_name || b.channelPartnerName || '').trim().toLowerCase();
+
+  if (userId && bCpId === userId) return true;
+  if (userName && bCpName && (bCpName === userName || bCpName.includes(userName) || userName.includes(bCpName))) return true;
+  if (userEmail && bCpName && (bCpName === userEmail || bCpName.includes(userEmail))) return true;
+
+  return false;
+};
 
 export const ChannelDashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const { channelPartners } = useChannelPartnerStore();
-  const { bookings } = useBookingStore();
   const { notifications, fetchNotifications } = useNotificationStore();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchNotifications();
+    api.bookings.list()
+      .then(data => setBookings(data || []))
+      .catch(() => [])
+      .finally(() => setLoading(false));
   }, []);
 
-  const cp = channelPartners.find(c => c.email === user?.email) || channelPartners[0];
-
-  const myBookings = bookings.filter(b => b.channelPartnerId === cp?.id);
-  const tokenBookings = myBookings.filter(b => b.status === 'token_paid').length;
+  const myBookings = bookings.filter(b => isMyChannelBooking(b, user));
+  const tokenBookings = myBookings.filter(b => b.status === 'token_paid' || b.status === 'token_booked').length;
   const confirmedBookings = myBookings.filter(b => b.status === 'confirmed').length;
   const soldBookings = myBookings.filter(b => b.status === 'sold').length;
+
+  const totalSales = myBookings.reduce((sum, b) => sum + Number(b.amount_paid || b.amountPaid || 0), 0);
+  const totalCommission = totalSales * 0.025; // 2.5% standard brokerage
+  const uniqueCustomers = new Set(myBookings.map(b => b.customer_id || b.customer_name)).size;
 
   const latestOffers = notifications.filter(n => n.type === 'offer' || n.type === 'announcement');
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-black text-slate-900">Welcome, {cp?.name || user?.name}!</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">{cp?.companyName} — Partner Pipeline & Commission Dashboard</p>
+        <h1 className="text-2xl font-black text-slate-900">Welcome, {user?.name}!</h1>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Partner Agency Pipeline & Commission Dashboard</p>
       </div>
 
       {/* Latest Broadcast Offer Banner */}
@@ -48,14 +71,14 @@ export const ChannelDashboard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <DashboardCard title="My Customers" value={cp?.totalCustomers || 0} icon={Users} iconColor="text-blue-700" />
-        <DashboardCard title="Active Leads" value={cp?.totalLeads || 0} icon={TrendingUp} iconColor="text-sky-600" />
+        <DashboardCard title="My Clients" value={uniqueCustomers} icon={Users} iconColor="text-blue-700" />
+        <DashboardCard title="Total Bookings" value={myBookings.length} icon={TrendingUp} iconColor="text-sky-600" />
         <DashboardCard title="Token Bookings" value={tokenBookings} icon={Clock} iconColor="text-orange-500" />
         <DashboardCard title="Confirmed" value={confirmedBookings} icon={BookOpen} iconColor="text-red-600" />
         <DashboardCard title="Plots Sold" value={soldBookings} icon={CheckCircle} iconColor="text-slate-600" />
-        <DashboardCard title="Total Sales" value={formatCurrency(cp?.totalRevenue || 0)} icon={IndianRupee} iconColor="text-emerald-600" />
-        <DashboardCard title="Commission" value={formatCurrency(cp?.commission || 0)} icon={Award} iconColor="text-blue-700" />
-        <DashboardCard title="Pending Payout" value={formatCurrency(cp?.pendingCommission || 0)} icon={Star} iconColor="text-sky-600" />
+        <DashboardCard title="Total Sales" value={formatCurrencyFull(totalSales)} icon={IndianRupee} iconColor="text-emerald-600" />
+        <DashboardCard title="Commission (2.5%)" value={formatCurrencyFull(totalCommission)} icon={Award} iconColor="text-blue-700" />
+        <DashboardCard title="Pending Payout" value={formatCurrencyFull(totalCommission)} icon={Star} iconColor="text-sky-600" />
       </div>
 
       {/* Recent Bookings */}
@@ -76,9 +99,9 @@ export const ChannelDashboard: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {myBookings.slice(0, 5).map(b => (
                 <tr key={b.id} className="table-row-hover">
-                  <td className="px-6 py-3.5 font-black text-slate-900">{b.plotNumber}</td>
-                  <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customerName}</td>
-                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">₹{b.amountPaid.toLocaleString('en-IN')}</td>
+                  <td className="px-6 py-3.5 font-black text-slate-900">{b.plot_number || b.plotNumber || '—'}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customer_name || b.customerName}</td>
+                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid || b.amountPaid || 0))}</td>
                   <td className="px-4 py-3.5">
                     <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                       b.status === 'token_paid' ? 'text-orange-800 bg-orange-50 border-orange-200' :
@@ -91,7 +114,7 @@ export const ChannelDashboard: React.FC = () => {
                 </tr>
               ))}
               {myBookings.length === 0 && (
-                <tr><td colSpan={4} className="text-center py-8 text-slate-400 text-xs font-medium">No bookings recorded yet</td></tr>
+                <tr><td colSpan={4} className="text-center py-8 text-slate-400 text-xs font-medium">No bookings recorded for your agency yet</td></tr>
               )}
             </tbody>
           </table>

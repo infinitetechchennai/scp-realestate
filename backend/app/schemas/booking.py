@@ -24,6 +24,7 @@ class BookingCreate(BaseModel):
     customer_email: Optional[str] = None
     customer_id: Optional[Union[uuid.UUID, str]] = None
     channel_partner_id: Optional[Union[uuid.UUID, str]] = None
+    booked_by_user_id: Optional[Union[uuid.UUID, str]] = None
     booking_type: str = "token_advance"  # 'token_advance', 'partial_payment', 'full_payment'
     amount_paid: Decimal = Field(default=Decimal("20000.00"), ge=0)
     payment_method: str = "upi"  # 'upi', 'bank_transfer', 'cash', 'card'
@@ -51,6 +52,7 @@ class BookingResponse(BaseModel):
     plot_id: uuid.UUID
     customer_id: uuid.UUID
     channel_partner_id: Optional[uuid.UUID] = None
+    booked_by_user_id: Optional[uuid.UUID] = None
     status: str
     total_amount: Decimal
     token_amount: Decimal
@@ -74,3 +76,6 @@ class BookingResponse(BaseModel):
     customer_phone: Optional[str] = None
     customer_email: Optional[str] = None
     channel_partner_name: Optional[str] = None
+    booked_by_name: Optional[str] = None
+    booked_by_email: Optional[str] = None
+    booked_by_role: Optional[str] = None

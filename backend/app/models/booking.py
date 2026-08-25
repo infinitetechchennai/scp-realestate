@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.channel_partner import ChannelPartner
     from app.models.payment import Payment
+    from app.models.user import User
 
 
 class Booking(Base):
@@ -23,6 +24,7 @@ class Booking(Base):
     plot_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("app.plots.id"), nullable=False)
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("app.customers.id"), nullable=False)
     channel_partner_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("app.channel_partners.id"), nullable=True)
+    booked_by_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("app.users.id"), nullable=True)
 
     status: Mapped[str] = mapped_column(String(30), default="token_paid", nullable=False)
     total_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
@@ -52,4 +54,5 @@ class Booking(Base):
     plot: Mapped["Plot"] = relationship("Plot", foreign_keys=[plot_id], lazy="selectin")
     customer: Mapped["Customer"] = relationship("Customer", foreign_keys=[customer_id], lazy="selectin")
     channel_partner: Mapped[Optional["ChannelPartner"]] = relationship("ChannelPartner", foreign_keys=[channel_partner_id], lazy="selectin")
+    booked_by_user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[booked_by_user_id], lazy="selectin")
     payments: Mapped[list["Payment"]] = relationship("Payment", back_populates="booking", lazy="selectin")

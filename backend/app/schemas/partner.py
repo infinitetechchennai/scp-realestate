@@ -45,6 +45,10 @@ class PartnerKycDetail(BaseModel):
     
     aadhar_number: Optional[str] = None
     pan_number: Optional[str] = None
+    aadhar_file_url: Optional[str] = None
+    aadhar_mime_type: Optional[str] = None
+    pan_file_url: Optional[str] = None
+    pan_mime_type: Optional[str] = None
     status: str
     rejection_reason: Optional[str] = None
     registration_fee_paid: bool

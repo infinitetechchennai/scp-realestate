@@ -11,6 +11,7 @@ from app.models.payment import Payment
 from app.models.plot import Plot
 from app.models.customer import Customer
 from app.models.channel_partner import ChannelPartner
+from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse, BookingUpdate
 from app.utils.audit import log_audit_event
 
@@ -47,6 +48,21 @@ async def list_bookings(
         if b.channel_partner:
             cp_name = b.channel_partner.company_name or f"{b.channel_partner.first_name} {b.channel_partner.last_name or ''}".strip()
 
+        booked_by_name = None
+        booked_by_email = None
+        booked_by_role = None
+        if b.booked_by_user:
+            booked_by_name = f"{b.booked_by_user.first_name} {b.booked_by_user.last_name or ''}".strip()
+            booked_by_email = b.booked_by_user.email
+            if b.booked_by_user.roles and len(b.booked_by_user.roles) > 0:
+                first_r = b.booked_by_user.roles[0].role
+                booked_by_role = first_r.name if first_r else "Employee"
+            else:
+                booked_by_role = "Employee / Staff"
+        elif b.channel_partner:
+            booked_by_name = cp_name
+            booked_by_role = "Channel Partner"
+
         result.append(
             BookingResponse(
                 id=b.id,
@@ -54,6 +70,7 @@ async def list_bookings(
                 plot_id=b.plot_id,
                 customer_id=b.customer_id,
                 channel_partner_id=b.channel_partner_id,
+                booked_by_user_id=b.booked_by_user_id,
                 status=b.status,
                 total_amount=b.total_amount,
                 token_amount=b.token_amount,
@@ -75,6 +92,9 @@ async def list_bookings(
                 customer_phone=b.customer.phone if b.customer else None,
                 customer_email=b.customer.email if b.customer else None,
                 channel_partner_name=cp_name,
+                booked_by_name=booked_by_name,
+                booked_by_email=booked_by_email,
+                booked_by_role=booked_by_role,
             )
         )
 
@@ -168,11 +188,12 @@ async def create_booking(
 
         date_str = datetime.now().strftime("%Y%m%d")
         pay_ref = f"PAY-{date_str}-{uuid.uuid4().hex[:6].upper()}"
+        pay_type = "full_payment" if new_balance == Decimal("0.00") else "balance_payment"
         payment = Payment(
             payment_reference=pay_ref,
             booking_id=existing_booking.id,
             customer_id=existing_booking.customer_id,
-            payment_type=req.booking_type,
+            payment_type=pay_type,
             payment_method=req.payment_method or "upi",
             amount=payment_amount,
             currency="INR",
@@ -217,47 +238,84 @@ async def create_booking(
             channel_partner_name=cp_name,
         )
 
-    # 2. Lookup or Auto-create Customer in app.customers for new booking
+    # 2. Resolve Channel Partner ID (support both ChannelPartner.id and User.id)
+    cp_id = None
+    if req.channel_partner_id:
+        cp_stmt = select(ChannelPartner).where(or_(ChannelPartner.id == req.channel_partner_id, ChannelPartner.user_id == req.channel_partner_id))
+        cp_res = await db.execute(cp_stmt)
+        cp_obj = cp_res.scalar_one_or_none()
+        if cp_obj:
+            cp_id = cp_obj.id
+
+    # 2.2 Resolve Booked-by User ID (Employee / Staff / Admin)
+    booked_by_uid = None
+    booked_by_user_obj = None
+    if req.booked_by_user_id:
+        try:
+            b_uid = uuid.UUID(str(req.booked_by_user_id).strip())
+            u_stmt = select(User).where(User.id == b_uid)
+            u_res = await db.execute(u_stmt)
+            booked_by_user_obj = u_res.scalar_one_or_none()
+            if booked_by_user_obj:
+                booked_by_uid = booked_by_user_obj.id
+        except Exception:
+            pass
+
+    # 2.5 Lookup or Auto-create Customer in app.customers for new booking
     cust_id = req.customer_id
     if not cust_id:
         phone = (req.customer_phone or "").strip()
         name = (req.customer_name or "Valued Client").strip()
-        email = (req.customer_email or "").strip() or f"client_{uuid.uuid4().hex[:6]}@scp.local"
+        email = (req.customer_email or "").strip()
 
+        existing_cust = None
+        conditions = []
+        if email and not email.endswith("@scp.local"):
+            conditions.append(Customer.email.ilike(email))
         if phone:
-            c_stmt = select(Customer).where(Customer.phone == phone)
-            c_res = await db.execute(c_stmt)
-            existing_cust = c_res.scalar_one_or_none()
-            if existing_cust:
-                cust_id = existing_cust.id
-            else:
-                parts = name.split(maxsplit=1)
-                first_name = parts[0]
-                last_name = parts[1] if len(parts) > 1 else None
+            conditions.append(Customer.phone == phone)
 
-                new_cust = Customer(
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    phone=phone,
-                    assigned_channel_partner_id=req.channel_partner_id,
-                    status="active",
-                )
-                db.add(new_cust)
-                await db.flush()
-                cust_id = new_cust.id
+        if conditions:
+            c_stmt = select(Customer).where(or_(*conditions)).order_by(Customer.user_id.is_not(None).desc())
+            c_res = await db.execute(c_stmt)
+            existing_cust = c_res.scalars().first()
+
+        if existing_cust:
+            cust_id = existing_cust.id
+            if not cp_id and existing_cust.assigned_channel_partner_id:
+                cp_id = existing_cust.assigned_channel_partner_id
         else:
-            # Fallback customer
+            # Check app.users if a registered account exists for this email
+            user_id = None
+            if email and not email.endswith("@scp.local"):
+                u_stmt = select(User).where(User.email.ilike(email))
+                u_res = await db.execute(u_stmt)
+                user_obj = u_res.scalar_one_or_none()
+                if user_obj:
+                    user_id = user_obj.id
+
+            parts = name.split(maxsplit=1)
+            first_name = parts[0]
+            last_name = parts[1] if len(parts) > 1 else None
+
             new_cust = Customer(
-                first_name=name,
-                email=email,
-                phone=f"+91{uuid.uuid4().int % 10000000000:010d}",
-                assigned_channel_partner_id=req.channel_partner_id,
+                user_id=user_id,
+                first_name=first_name,
+                last_name=last_name,
+                email=email or f"client_{uuid.uuid4().hex[:6]}@scp.local",
+                phone=phone or f"+91{uuid.uuid4().int % 10000000000:010d}",
+                assigned_channel_partner_id=cp_id,
                 status="active",
             )
             db.add(new_cust)
             await db.flush()
             cust_id = new_cust.id
+    elif not cp_id:
+        c_stmt = select(Customer).where(Customer.id == cust_id)
+        c_res = await db.execute(c_stmt)
+        c_obj = c_res.scalar_one_or_none()
+        if c_obj and c_obj.assigned_channel_partner_id:
+            cp_id = c_obj.assigned_channel_partner_id
 
     # 3. Calculate Amounts, Statuses, and Timestamps
     now = datetime.now(timezone.utc)
@@ -273,6 +331,7 @@ async def create_booking(
         confirmed_at = None
         payment_deadline_at = None
         sold_at = None
+        db_payment_type = "token_advance"
     elif amount_paid < total_price:
         plot_db_status = "confirmed"
         booking_db_status = "confirmed"
@@ -281,6 +340,7 @@ async def create_booking(
         confirmed_at = now
         payment_deadline_at = now + timedelta(days=90)
         sold_at = None
+        db_payment_type = "continue_payment"
     else:
         plot_db_status = "sold"
         booking_db_status = "sold"
@@ -289,6 +349,7 @@ async def create_booking(
         confirmed_at = now
         payment_deadline_at = None
         sold_at = now
+        db_payment_type = "full_payment"
 
     # 4. Generate Unique Booking Reference
     date_str = datetime.now().strftime("%Y%m%d")
@@ -300,10 +361,11 @@ async def create_booking(
         booking_reference=booking_ref,
         plot_id=plot.id,
         customer_id=cust_id,
-        channel_partner_id=req.channel_partner_id,
+        channel_partner_id=cp_id,
+        booked_by_user_id=booked_by_uid,
         status=booking_db_status,
         total_amount=total_price,
-        token_amount=amount_paid if booking_db_status == "token_paid" else Decimal("20000.00"),
+        token_amount=amount_paid if booking_db_status == "token_paid" else Decimal("0.00"),
         amount_paid=amount_paid,
         token_paid_at=token_paid_at,
         token_expires_at=token_expires_at,
@@ -321,7 +383,7 @@ async def create_booking(
         payment_reference=pay_ref,
         booking_id=booking.id,
         customer_id=cust_id,
-        payment_type=req.booking_type,
+        payment_type=db_payment_type,
         payment_method=req.payment_method or "upi",
         amount=amount_paid,
         currency="INR",
@@ -336,6 +398,7 @@ async def create_booking(
     plot.status = plot_db_status
 
     # Record audit log
+    booked_by_str = f"{booked_by_user_obj.first_name} {booked_by_user_obj.last_name or ''}".strip() if booked_by_user_obj else "System / Direct"
     await log_audit_event(
         db=db,
         action="BOOKING_CREATED",
@@ -347,6 +410,7 @@ async def create_booking(
             "status": booking.status,
             "amount_paid": float(amount_paid),
             "customer": req.customer_name or "Client",
+            "booked_by": booked_by_str,
         },
     )
 
@@ -360,6 +424,14 @@ async def create_booking(
     customer = c_res.scalar_one_or_none()
 
     c_name = f"{customer.first_name} {customer.last_name or ''}".strip() if customer else (req.customer_name or "Client")
+    
+    booked_by_name = None
+    booked_by_email = None
+    booked_by_role = None
+    if booked_by_user_obj:
+        booked_by_name = f"{booked_by_user_obj.first_name} {booked_by_user_obj.last_name or ''}".strip()
+        booked_by_email = booked_by_user_obj.email
+        booked_by_role = "Employee"
 
     return BookingResponse(
         id=booking.id,
@@ -367,6 +439,7 @@ async def create_booking(
         plot_id=booking.plot_id,
         customer_id=booking.customer_id,
         channel_partner_id=booking.channel_partner_id,
+        booked_by_user_id=booking.booked_by_user_id,
         status=booking.status,
         total_amount=booking.total_amount,
         token_amount=booking.token_amount,
@@ -384,4 +457,8 @@ async def create_booking(
         customer_name=c_name,
         customer_phone=customer.phone if customer else req.customer_phone,
         customer_email=customer.email if customer else req.customer_email,
+        channel_partner_name=None,
+        booked_by_name=booked_by_name,
+        booked_by_email=booked_by_email,
+        booked_by_role=booked_by_role,
     )

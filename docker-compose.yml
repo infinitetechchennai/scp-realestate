@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  scp-db:
+    image: postgres:16-alpine
+    container_name: scp-realestate-db
+    restart: always
+    environment:
+      POSTGRES_USER: scp_admin
+      POSTGRES_PASSWORD: ScpPassword2026!
+      POSTGRES_DB: scp_realestate_db
+    volumes:
+      - scp_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scp_admin -d scp_realestate_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - scp-network
+
+  scp-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: scp-realestate-api
+    restart: always
+    environment:
+      PROJECT_NAME: "Seven Circle Property Developers"
+      API_V1_STR: "/api/v1"
+      SECRET_KEY: "super-secret-key-scp-realestate-production-2026"
+      POSTGRES_SERVER: scp-db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: scp_admin
+      POSTGRES_PASSWORD: ScpPassword2026!
+      POSTGRES_DB: scp_realestate_db
+      DB_SCHEMA: app
+    volumes:
+      - scp_uploads:/app/uploads
+    depends_on:
+      scp-db:
+        condition: service_healthy
+    networks:
+      - scp-network
+
+  scp-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: scp-realestate-frontend
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - scp-api
+    networks:
+      - scp-network
+
+volumes:
+  scp_postgres_data:
+  scp_uploads:
+
+networks:
+  scp-network:
+    driver: bridge

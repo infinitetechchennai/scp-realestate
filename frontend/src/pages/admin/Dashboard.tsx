@@ -304,8 +304,8 @@ export const AdminDashboard: React.FC = () => {
               <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
                 <th className="text-left px-6 py-3.5">Booking ID</th>
                 <th className="text-left px-4 py-3.5">Plot Number</th>
-                <th className="text-left px-4 py-3.5">Customer</th>
-                <th className="text-left px-4 py-3.5">Channel Partner</th>
+                <th className="text-left px-4 py-3.5">Customer (Buyer)</th>
+                <th className="text-left px-4 py-3.5">Booked By (Employee / User)</th>
                 <th className="text-right px-4 py-3.5">Amount Paid</th>
                 <th className="text-left px-4 py-3.5">Status</th>
               </tr>
@@ -329,8 +329,18 @@ export const AdminDashboard: React.FC = () => {
                     <td className="px-4 py-3.5 text-slate-700 font-medium">
                       {b.customer_name || b.customerName || 'Valued Client'}
                     </td>
-                    <td className="px-4 py-3.5 text-slate-500">
-                      {b.channel_partner_name || b.channelPartnerName || 'Direct'}
+                    <td className="px-4 py-3.5 text-slate-600 font-medium">
+                      {b.booked_by_name || b.bookedByName ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200/60 font-semibold text-[11px]">
+                          👤 {b.booked_by_name || b.bookedByName}
+                        </span>
+                      ) : b.channel_partner_name || b.channelPartnerName ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200/60 font-semibold text-[11px]">
+                          🤝 {b.channel_partner_name || b.channelPartnerName}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">Direct / Super Admin</span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-right font-black text-emerald-700">
                       ₹{Number(b.amount_paid ?? b.amountPaid ?? 0).toLocaleString('en-IN')}

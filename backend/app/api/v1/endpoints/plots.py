@@ -28,7 +28,7 @@ async def release_expired_plots(db: AsyncSession):
             balance_amount = 0,
             balance_due_date = NULL,
             updated_at = CURRENT_TIMESTAMP
-        WHERE status = 'partial_booked' AND balance_due_date < CURRENT_TIMESTAMP;
+        WHERE status IN ('confirmed', 'partial_booked') AND balance_due_date < CURRENT_TIMESTAMP;
     """)
     await db.execute(expire_tokens_sql)
     await db.execute(expire_partials_sql)
@@ -37,37 +37,54 @@ async def release_expired_plots(db: AsyncSession):
 @router.get("")
 @router.get("/")
 async def get_all_plots(db: AsyncSession = Depends(get_db)):
-    """Fetch all plots dynamically from PostgreSQL app.plots table after running auto-expiry check"""
+    """Fetch all plots dynamically from PostgreSQL app.plots table with customer & partner details after running auto-expiry check"""
     await release_expired_plots(db)
     
     sql = text("""
         SELECT 
-            id::text,
-            project_id::text,
-            plot_number as "plotNumber",
-            location,
-            area_sqft as area,
-            dimensions,
-            facing,
-            road_width_ft as "roadWidth",
-            price_per_sqft as "pricePerSqft",
-            total_price as "totalPrice",
-            token_required as "tokenRequired",
-            token_amount as "tokenAmount",
-            token_date as "tokenDate",
-            token_expiry as "tokenExpiry",
-            amount_paid as "amountPaid",
-            balance_amount as "balanceAmount",
-            balance_due_date as "balanceDueDate",
-            row_index as row,
-            col_index as col,
-            status,
-            created_at,
-            updated_at
-        FROM app.plots
+            p.id::text,
+            p.project_id::text,
+            p.plot_number as "plotNumber",
+            p.location,
+            p.area_sqft as area,
+            p.dimensions,
+            p.facing,
+            p.road_width_ft as "roadWidth",
+            p.price_per_sqft as "pricePerSqft",
+            p.total_price as "totalPrice",
+            p.token_required as "tokenRequired",
+            COALESCE(b.token_amount, p.token_amount, 0) as "tokenAmount",
+            COALESCE(b.token_paid_at, p.token_date) as "tokenDate",
+            COALESCE(b.token_expires_at, p.token_expiry) as "tokenExpiry",
+            COALESCE(b.amount_paid, p.amount_paid, 0) as "amountPaid",
+            COALESCE(b.balance_amount, p.balance_amount, 0) as "balanceAmount",
+            COALESCE(b.payment_deadline_at, p.balance_due_date) as "balanceDueDate",
+            p.row_index as row,
+            p.col_index as col,
+            p.status,
+            p.created_at,
+            p.updated_at,
+            b.id::text as "bookingId",
+            b.booking_reference as "bookingReference",
+            c.id::text as "customerId",
+            TRIM(CONCAT(c.first_name, ' ', COALESCE(c.last_name, ''))) as "customerName",
+            c.email as "customerEmail",
+            c.phone as "customerPhone",
+            cp.id::text as "channelPartnerId",
+            COALESCE(cp.company_name, TRIM(CONCAT(cp.first_name, ' ', COALESCE(cp.last_name, '')))) as "channelPartnerName",
+            cp.phone as "channelPartnerPhone"
+        FROM app.plots p
+        LEFT JOIN LATERAL (
+            SELECT * FROM app.bookings bk
+            WHERE bk.plot_id = p.id AND bk.status != 'cancelled'
+            ORDER BY bk.created_at DESC
+            LIMIT 1
+        ) b ON true
+        LEFT JOIN app.customers c ON b.customer_id = c.id
+        LEFT JOIN app.channel_partners cp ON b.channel_partner_id = cp.id
         ORDER BY 
-            CAST(SUBSTRING(plot_number FROM '[0-9]+') AS INTEGER) ASC,
-            plot_number ASC;
+            CAST(SUBSTRING(p.plot_number FROM '[0-9]+') AS INTEGER) ASC,
+            p.plot_number ASC;
     """)
     result = await db.execute(sql)
     rows = result.mappings().all()
@@ -217,7 +234,7 @@ async def book_plot(req: BookingRequest, db: AsyncSession = Depends(get_db)):
             "pnum": clean_pnum
         })
     elif req.paymentType == "partial":
-        status = "partial_booked"
+        status = "confirmed"
         expiry_info = (now + timedelta(days=90)).isoformat()
         balance = max(0.0, total_price - req.amount)
         await db.execute(text("""
@@ -416,9 +433,7 @@ async def upload_plot_csv(
             status = "sold"
         elif "token" in raw_status:
             status = "token_booked"
-        elif "partial" in raw_status:
-            status = "partial_booked"
-        elif "book" in raw_status or "confirm" in raw_status:
+        elif "partial" in raw_status or "book" in raw_status or "confirm" in raw_status:
             status = "confirmed"
         else:
             status = "available"
@@ -530,7 +545,7 @@ async def update_single_plot_status(
         deadline = (now + timedelta(days=90)) if not payload.balance_due_date else datetime.fromisoformat(payload.balance_due_date.replace("Z", "+00:00"))
         await db.execute(text("""
             UPDATE app.plots
-            SET status = 'partial_booked',
+            SET status = 'confirmed',
                 amount_paid = :amt_paid,
                 balance_amount = :bal_due,
                 balance_due_date = :deadline,

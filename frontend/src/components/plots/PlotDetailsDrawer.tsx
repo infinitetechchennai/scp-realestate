@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plot } from '../../types';
-import { X, MapPin, Square, Compass, IndianRupee, Calendar, User, Handshake, Clock, CheckCircle, AlertCircle, Sparkles, Lock } from 'lucide-react';
+import { X, MapPin, Square, Compass, IndianRupee, Calendar, User, Handshake, Clock, CheckCircle, AlertCircle, Sparkles, Lock, Phone, Mail, FileText } from 'lucide-react';
 import { StatusBadge, ConfirmationModal } from '../ui/UIComponents';
 import { formatCurrencyFull, getDaysRemaining } from '../../utils/helpers';
 import { usePlotStore } from '../../store/plotStore';
@@ -166,14 +166,59 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
           {/* Booking Info Card (For Token Booked / Partial Booked / Sold Plots) */}
           {plot.status !== 'available' && (
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Booking & Financial Status</h3>
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Booking & Buyer Details</h3>
+
+              {/* Customer / Buyer Information Box */}
+              <div className="bg-gradient-to-br from-blue-50/80 to-sky-50/50 border border-blue-100 rounded-xl p-3 space-y-2">
+                <div className="text-[11px] font-black text-blue-900 uppercase tracking-wider flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <User size={13} className="text-blue-700" />
+                    <span>Buyer Information</span>
+                  </div>
+                  {(plot as any).bookingReference && (
+                    <span className="text-[10px] font-mono font-bold text-blue-700 bg-white/80 px-2 py-0.5 rounded-md border border-blue-200">
+                      {(plot as any).bookingReference}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center py-1 border-b border-blue-100/60">
+                    <span className="text-slate-500 font-medium">Customer Name:</span>
+                    <span className="font-black text-slate-900">{plot.customerName || 'Registered Customer'}</span>
+                  </div>
+
+                  {plot.customerPhone && (
+                    <div className="flex justify-between items-center py-1 border-b border-blue-100/60">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <Phone size={11} className="text-slate-400" /> Phone:
+                      </span>
+                      <span className="font-bold text-slate-800 font-mono">{plot.customerPhone}</span>
+                    </div>
+                  )}
+
+                  {plot.customerEmail && (
+                    <div className="flex justify-between items-center py-1 border-b border-blue-100/60">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <Mail size={11} className="text-slate-400" /> Email:
+                      </span>
+                      <span className="font-bold text-slate-800">{plot.customerEmail}</span>
+                    </div>
+                  )}
+
+                  {plot.channelPartnerName && (
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <Handshake size={11} className="text-sky-600" /> Channel Partner:
+                      </span>
+                      <span className="font-bold text-sky-700">{plot.channelPartnerName}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Financial Status Summary */}
               <div className="space-y-2 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-                {plot.customerName && (
-                  <InfoRow icon={User} label="Customer" value={plot.customerName} />
-                )}
-                {plot.channelPartnerName && (
-                  <InfoRow icon={Handshake} label="Channel Partner" value={plot.channelPartnerName} />
-                )}
                 {plot.tokenAmount !== undefined && plot.tokenAmount > 0 && (
                   <InfoRow icon={IndianRupee} label="Token Paid" value={formatCurrencyFull(plot.tokenAmount)} highlight="green" />
                 )}

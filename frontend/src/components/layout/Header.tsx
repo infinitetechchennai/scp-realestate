@@ -26,6 +26,7 @@ const routeLabels: Record<string, string[]> = {
   '/channel/plots': ['Channel Partner', 'Available Plots'],
   '/channel/bookings': ['Channel Partner', 'My Bookings'],
   '/channel/payments': ['Channel Partner', 'Payments'],
+  '/channel/reports': ['Channel Partner', 'Reports'],
   '/channel/documents': ['Channel Partner', 'Documents'],
   '/channel/profile': ['Channel Partner', 'Profile'],
   '/customer/dashboard': ['Customer', 'Dashboard'],
@@ -33,6 +34,7 @@ const routeLabels: Record<string, string[]> = {
   '/customer/plots': ['Customer', 'Browse Plots'],
   '/customer/bookings': ['Customer', 'My Bookings'],
   '/customer/payments': ['Customer', 'Payments'],
+  '/customer/reports': ['Customer', 'Reports'],
   '/customer/documents': ['Customer', 'Documents'],
   '/customer/profile': ['Customer', 'Profile'],
 };
