@@ -4,8 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func, text
 from app.core.config import settings
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal, engine, Base
 from app.core.security import get_password_hash
+import app.models  # Register all models
 from app.models.user import Role, User, UserRole
 from app.models.project import Project
 from app.models.plot import Plot
@@ -13,15 +14,18 @@ from app.api.v1.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Run non-blocking migrations, seed default roles, admin, and employee
-    async with AsyncSessionLocal() as session:
-        # Ensure schema columns exist
+    # 1. Initialize PostgreSQL schema and tables if fresh database
+    async with engine.begin() as conn:
+        await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {settings.DB_SCHEMA};"))
+        await conn.run_sync(Base.metadata.create_all)
         try:
-            await session.execute(text("ALTER TABLE app.bookings ADD COLUMN IF NOT EXISTS booked_by_user_id UUID REFERENCES app.users(id);"))
-            await session.execute(text("ALTER TABLE app.customers ALTER COLUMN user_id DROP NOT NULL;"))
-            await session.commit()
+            await conn.execute(text("ALTER TABLE app.bookings ADD COLUMN IF NOT EXISTS booked_by_user_id UUID REFERENCES app.users(id);"))
+            await conn.execute(text("ALTER TABLE app.customers ALTER COLUMN user_id DROP NOT NULL;"))
         except Exception as e:
             print("Schema migration note:", e)
+
+    # 2. Seed default roles, admin, employee, and plot data
+    async with AsyncSessionLocal() as session:
 
         # Seed standard roles with both code and name
         roles_to_seed = [
