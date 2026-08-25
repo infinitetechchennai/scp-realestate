@@ -14,10 +14,24 @@ const isMyChannelBooking = (b: any, user: any) => {
 
   const bCpId = b.channel_partner_id || b.channelPartnerId;
   const bCpName = (b.channel_partner_name || b.channelPartnerName || '').trim().toLowerCase();
+  const bBookedById = b.booked_by_user_id || b.bookedByUserId;
+  const bBookedByName = (b.booked_by_name || b.bookedByName || '').trim().toLowerCase();
+  const bBookedByEmail = (b.booked_by_email || b.bookedByEmail || '').trim().toLowerCase();
 
-  if (userId && bCpId === userId) return true;
-  if (userName && bCpName && (bCpName === userName || bCpName.includes(userName) || userName.includes(bCpName))) return true;
-  if (userEmail && bCpName && (bCpName === userEmail || bCpName.includes(userEmail))) return true;
+  // 1. Direct ID matching (User ID or Channel Partner ID)
+  if (userId && (bCpId === userId || bBookedById === userId)) return true;
+
+  // 2. Name matching (Channel Partner name or Booked By User name)
+  if (userName) {
+    if (bCpName && (bCpName === userName || bCpName.includes(userName) || userName.includes(bCpName))) return true;
+    if (bBookedByName && (bBookedByName === userName || bBookedByName.includes(userName) || userName.includes(bBookedByName))) return true;
+  }
+
+  // 3. Email matching
+  if (userEmail) {
+    if (bCpName && (bCpName === userEmail || bCpName.includes(userEmail))) return true;
+    if (bBookedByEmail && (bBookedByEmail === userEmail || bBookedByEmail.includes(userEmail))) return true;
+  }
 
   return false;
 };
@@ -42,7 +56,7 @@ export const ChannelDashboard: React.FC = () => {
   const soldBookings = myBookings.filter(b => b.status === 'sold').length;
 
   const totalSales = myBookings.reduce((sum, b) => sum + Number(b.amount_paid || b.amountPaid || 0), 0);
-  const totalCommission = totalSales * 0.025; // 2.5% standard brokerage
+  const totalBalance = myBookings.reduce((sum, b) => sum + Number(b.balance_amount || b.balanceAmount || 0), 0);
   const uniqueCustomers = new Set(myBookings.map(b => b.customer_id || b.customer_name)).size;
 
   const latestOffers = notifications.filter(n => n.type === 'offer' || n.type === 'announcement');
@@ -51,7 +65,7 @@ export const ChannelDashboard: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-black text-slate-900">Welcome, {user?.name}!</h1>
-        <p className="text-slate-500 text-xs font-medium mt-0.5">Partner Agency Pipeline & Commission Dashboard</p>
+        <p className="text-slate-500 text-xs font-medium mt-0.5">Partner Agency Pipeline & Sales Dashboard</p>
       </div>
 
       {/* Latest Broadcast Offer Banner */}
@@ -70,51 +84,76 @@ export const ChannelDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <DashboardCard title="My Clients" value={uniqueCustomers} icon={Users} iconColor="text-blue-700" />
         <DashboardCard title="Total Bookings" value={myBookings.length} icon={TrendingUp} iconColor="text-sky-600" />
         <DashboardCard title="Token Bookings" value={tokenBookings} icon={Clock} iconColor="text-orange-500" />
         <DashboardCard title="Confirmed" value={confirmedBookings} icon={BookOpen} iconColor="text-red-600" />
         <DashboardCard title="Plots Sold" value={soldBookings} icon={CheckCircle} iconColor="text-slate-600" />
-        <DashboardCard title="Total Sales" value={formatCurrencyFull(totalSales)} icon={IndianRupee} iconColor="text-emerald-600" />
-        <DashboardCard title="Commission (2.5%)" value={formatCurrencyFull(totalCommission)} icon={Award} iconColor="text-blue-700" />
-        <DashboardCard title="Pending Payout" value={formatCurrencyFull(totalCommission)} icon={Star} iconColor="text-sky-600" />
+        <DashboardCard title="Total Collections" value={formatCurrencyFull(totalSales)} icon={IndianRupee} iconColor="text-emerald-600" />
       </div>
 
-      {/* Recent Bookings */}
+      {/* Recent Booking Transactions Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">My Recent Client Bookings</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Recent Booking Transactions</h3>
+          <a href="/channel/bookings" className="text-xs text-blue-600 hover:text-blue-700 font-bold">View All Bookings →</a>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-                <th className="text-left px-6 py-3.5">Plot No</th>
-                <th className="text-left px-4 py-3.5">Customer</th>
+                <th className="text-left px-6 py-3.5">Booking ID</th>
+                <th className="text-left px-4 py-3.5">Plot Number</th>
+                <th className="text-left px-4 py-3.5">Customer (Buyer)</th>
+                <th className="text-left px-4 py-3.5">Date</th>
                 <th className="text-right px-4 py-3.5">Amount Paid</th>
+                <th className="text-right px-4 py-3.5">Balance Due</th>
                 <th className="text-left px-4 py-3.5">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {myBookings.slice(0, 5).map(b => (
-                <tr key={b.id} className="table-row-hover">
-                  <td className="px-6 py-3.5 font-black text-slate-900">{b.plot_number || b.plotNumber || '—'}</td>
-                  <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customer_name || b.customerName}</td>
-                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid || b.amountPaid || 0))}</td>
-                  <td className="px-4 py-3.5">
-                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                      b.status === 'token_paid' ? 'text-orange-800 bg-orange-50 border-orange-200' :
-                      b.status === 'confirmed' ? 'text-red-800 bg-red-50 border-red-200' :
-                      'text-slate-700 bg-slate-100 border-slate-200'
-                    }`}>
-                      {b.status.replace('_', ' ')}
-                    </span>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-slate-400 font-medium">
+                    Loading your agency bookings...
                   </td>
                 </tr>
-              ))}
-              {myBookings.length === 0 && (
-                <tr><td colSpan={4} className="text-center py-8 text-slate-400 text-xs font-medium">No bookings recorded for your agency yet</td></tr>
+              ) : myBookings.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-slate-400 font-medium">
+                    No bookings recorded for your agency yet.
+                  </td>
+                </tr>
+              ) : (
+                myBookings.slice(0, 5).map(b => {
+                  const plotNum = b.plot_number || b.plotNumber || '—';
+                  const paid = Number(b.amount_paid || b.amountPaid || 0);
+                  const balance = Number(b.balance_amount || b.balanceAmount || 0);
+                  return (
+                    <tr key={b.id} className="table-row-hover">
+                      <td className="px-6 py-3.5 font-mono font-bold text-blue-700">
+                        {b.booking_reference || b.id.slice(0, 8)}
+                      </td>
+                      <td className="px-4 py-3.5 font-bold text-slate-900">{plotNum}</td>
+                      <td className="px-4 py-3.5 font-medium text-slate-800">{b.customer_name || b.customerName || 'Client'}</td>
+                      <td className="px-4 py-3.5 text-slate-500 font-mono">
+                        {b.created_at || b.booking_date ? new Date(b.created_at || b.booking_date).toLocaleDateString('en-IN') : '—'}
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(paid)}</td>
+                      <td className="px-4 py-3.5 text-right font-black text-red-600">{balance > 0 ? formatCurrencyFull(balance) : '—'}</td>
+                      <td className="px-4 py-3.5">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          b.status === 'token_paid' ? 'text-orange-800 bg-orange-50 border-orange-200' :
+                          b.status === 'confirmed' ? 'text-red-800 bg-red-50 border-red-200' :
+                          'text-slate-700 bg-slate-100 border-slate-200'
+                        }`}>
+                          {b.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -12,6 +12,7 @@ import { mockProjects, mockDocuments } from '../../data/mockData';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
 import { PaymentReceiptModal, ReceiptData } from '../../components/booking/PaymentReceiptModal';
+import { BookingWizard } from '../../components/booking/BookingWizard';
 
 const isMyBooking = (b: any, user: any) => {
   if (!user) return false;
@@ -99,67 +100,65 @@ export const CustomerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* My Bookings Detailed Cards */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">My Active Plot Bookings</h3>
-        {loading ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-400">Loading your plot reservations...</div>
-        ) : myBookings.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-400">No active plot bookings found for your account.</div>
-        ) : (
-          myBookings.map(b => {
-            const plotNum = b.plot_number || b.plotNumber;
-            const plot = plots.find(p => (p as any).plot_number === plotNum || p.plotNumber === plotNum || p.id === (b.plot_id || b.plotId));
-            const expiryDate = b.token_expires_at || b.tokenExpiry;
-            const daysLeft = expiryDate ? getDaysRemaining(expiryDate) : null;
-            const paid = Number(b.amount_paid || b.amountPaid || 0);
-            const total = Number(b.total_amount || b.totalAmount || 0);
-            const balance = Number(b.balance_amount || b.balanceAmount || 0);
-
-            return (
-              <div key={b.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xl font-black text-slate-900">{plotNum || 'Plot'}</span>
-                    <StatusBadge status={b.status} size="md" />
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium">{b.project_name || b.projectName || 'SCP Farm Layout'}</p>
-                  
-                  {/* Customer Information Card */}
-                  <div className="mt-3 p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex flex-wrap items-center justify-between gap-2 max-w-xl">
-                    <div>
-                      <span className="text-[10px] text-blue-900/70 font-bold uppercase block">Customer (Buyer)</span>
-                      <span className="text-xs font-black text-slate-900">{b.customer_name || b.customerName || 'Valued Buyer'}</span>
-                    </div>
-                    {(b.customer_phone || b.customerPhone) && (
-                      <div className="text-right">
-                        <span className="text-[10px] text-blue-900/70 font-bold uppercase block">Mobile Number</span>
-                        <span className="text-xs font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200/60 inline-block">
-                          📞 {b.customer_phone || b.customerPhone}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-600">
-                    <div><span className="text-slate-400 font-medium">Area: </span><span className="font-bold">{plot?.area || 1200} sq.ft</span></div>
-                    <div><span className="text-slate-400 font-medium">Total: </span><span className="font-bold">{formatCurrencyFull(total)}</span></div>
-                    <div><span className="text-slate-400 font-medium">Paid: </span><span className="font-bold text-emerald-700">{formatCurrencyFull(paid)}</span></div>
-                    <div><span className="text-slate-400 font-medium">Balance: </span><span className="font-bold text-red-600">{formatCurrencyFull(balance)}</span></div>
-                  </div>
-                </div>
-
-                {b.status === 'token_paid' && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 text-center min-w-[160px]">
-                    <div className="text-[11px] font-bold text-orange-950">Token Expiry</div>
-                    <div className="text-base font-black text-orange-700">{daysLeft !== null && daysLeft > 0 ? `${daysLeft} Days Left` : (daysLeft !== null ? 'EXPIRED' : '7 Days')}</div>
-                    <div className="text-[10px] text-orange-800 mt-0.5">{expiryDate ? new Date(expiryDate).toLocaleDateString() : 'Active Hold'}</div>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+      {/* Recent Booking Transactions Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Recent Booking Transactions</h3>
+          <a href="/user/bookings" className="text-xs text-blue-600 hover:text-blue-700 font-bold">View All Bookings →</a>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                <th className="text-left px-6 py-3.5">Booking ID</th>
+                <th className="text-left px-4 py-3.5">Plot Number</th>
+                <th className="text-left px-4 py-3.5">Customer (Buyer)</th>
+                <th className="text-left px-4 py-3.5">Date</th>
+                <th className="text-right px-4 py-3.5">Amount Paid</th>
+                <th className="text-right px-4 py-3.5">Balance Due</th>
+                <th className="text-left px-4 py-3.5">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-slate-400 font-medium">
+                    Loading your booking transactions...
+                  </td>
+                </tr>
+              ) : myBookings.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-slate-400 font-medium">
+                    No booking transactions recorded yet.
+                  </td>
+                </tr>
+              ) : (
+                myBookings.slice(0, 5).map(b => {
+                  const plotNum = b.plot_number || b.plotNumber || '—';
+                  const paid = Number(b.amount_paid || b.amountPaid || 0);
+                  const balance = Number(b.balance_amount || b.balanceAmount || 0);
+                  return (
+                    <tr key={b.id} className="table-row-hover">
+                      <td className="px-6 py-3.5 font-mono font-bold text-blue-700">
+                        {b.booking_reference || b.id.slice(0, 8)}
+                      </td>
+                      <td className="px-4 py-3.5 font-bold text-slate-900">{plotNum}</td>
+                      <td className="px-4 py-3.5 font-medium text-slate-800">{b.customer_name || b.customerName || 'Valued Buyer'}</td>
+                      <td className="px-4 py-3.5 text-slate-500 font-mono">
+                        {b.created_at || b.booking_date ? new Date(b.created_at || b.booking_date).toLocaleDateString('en-IN') : '—'}
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(paid)}</td>
+                      <td className="px-4 py-3.5 text-right font-black text-red-600">{balance > 0 ? formatCurrencyFull(balance) : '—'}</td>
+                      <td className="px-4 py-3.5">
+                        <StatusBadge status={b.status} />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -233,17 +232,82 @@ export const CustomerProjects: React.FC = () => {
 
 export const CustomerBookings: React.FC = () => {
   const { user } = useAuthStore();
+  const { plots, fetchPlots } = usePlotStore();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
+  const [selectedPlotForPay, setSelectedPlotForPay] = useState<Plot | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
+    fetchPlots();
     api.bookings.list()
       .then(data => setBookings(data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const myBookings = bookings.filter(b => isMyBooking(b, user));
+
+  const handlePayBalance = (b: any) => {
+    const plotNum = b.plot_number || b.plotNumber;
+    const existingPlot = plots.find(p => p.plotNumber === plotNum || p.id === (b.plot_id || b.plotId));
+    const plotObj: Plot = existingPlot ? {
+      ...existingPlot,
+      customerName: b.customer_name || existingPlot.customerName,
+      customerPhone: b.customer_phone || existingPlot.customerPhone,
+      customerEmail: b.customer_email || existingPlot.customerEmail,
+      totalPrice: Number(b.total_amount || existingPlot.totalPrice),
+      totalPaid: Number(b.amount_paid || existingPlot.totalPaid || 0),
+      balanceDue: Number(b.balance_amount !== undefined ? b.balance_amount : (existingPlot.balanceDue || 0)),
+      status: b.status === 'token_paid' ? 'token_booked' : (b.status === 'confirmed' ? 'partial_booked' : existingPlot.status),
+    } : {
+      id: b.plot_id || b.id,
+      plotNumber: plotNum || 'Plot',
+      projectId: b.project_id || 'proj-1',
+      projectName: b.project_name || 'Green Valley Township',
+      location: 'Chennai Highway',
+      dimensions: '30x40',
+      area: 1200,
+      facing: 'North',
+      roadWidth: '30 ft',
+      pricePerSqft: 2500,
+      totalPrice: Number(b.total_amount || 3000000),
+      status: b.status === 'token_paid' ? 'token_booked' : 'partial_booked',
+      row: 1,
+      col: 1,
+      totalPaid: Number(b.amount_paid || 0),
+      balanceDue: Number(b.balance_amount || 0),
+      customerName: b.customer_name || user?.name,
+      customerEmail: b.customer_email || user?.email,
+      customerPhone: b.customer_phone || user?.phone,
+    };
+    setSelectedPlotForPay(plotObj);
+  };
+
+  const handleOpenReceipt = (b: any) => {
+    const receipt: ReceiptData = {
+      receiptNumber: `PAY-${(b.booking_reference || b.id).slice(0, 12)}`,
+      bookingReference: b.booking_reference || b.id,
+      date: b.created_at || new Date().toISOString(),
+      customerName: b.customer_name || user?.name || 'Valued Buyer',
+      customerEmail: b.customer_email || user?.email,
+      customerPhone: b.customer_phone || user?.phone,
+      plotNumber: b.plot_number || 'Plot',
+      projectName: b.project_name || 'Green Valley Township',
+      projectLocation: 'Chennai Highway, Tamil Nadu',
+      paymentType: b.status === 'token_paid' ? 'token_advance' : (b.status === 'sold' ? 'full_payment' : 'continue_payment'),
+      paymentMethod: 'UPI',
+      transactionId: `UPI-${b.id.slice(0, 8).toUpperCase()}`,
+      amountPaid: Number(b.amount_paid || 0),
+      balanceAmount: Number(b.balance_amount || 0),
+      deadlineDate: b.payment_deadline_at,
+    };
+    setSelectedReceipt(receipt);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -265,48 +329,91 @@ export const CustomerBookings: React.FC = () => {
               <th className="text-right px-4 py-3.5">Amount Paid</th>
               <th className="text-right px-4 py-3.5">Balance Due</th>
               <th className="text-left px-4 py-3.5">Status</th>
+              <th className="text-right px-6 py-3.5">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
               <tr>
-                <td colSpan={9} className="text-center py-8 text-slate-400 font-medium">Loading live reservations...</td>
+                <td colSpan={10} className="text-center py-8 text-slate-400 font-medium">Loading live reservations...</td>
               </tr>
             ) : myBookings.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-8 text-slate-400 font-medium">No plot reservations found for your account.</td>
+                <td colSpan={10} className="text-center py-8 text-slate-400 font-medium">No plot reservations found for your account.</td>
               </tr>
             ) : (
-              myBookings.map(b => (
-                <tr key={b.id} className="table-row-hover">
-                  <td className="px-5 py-3.5 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
-                  <td className="px-3 py-3.5 font-black text-slate-900">{b.plot_number || b.plotNumber || '—'}</td>
-                  <td className="px-4 py-3.5">
-                    <div className="font-bold text-slate-900">{b.customer_name || b.customerName || 'Valued Buyer'}</div>
-                    {b.customer_email && <div className="text-[10px] text-slate-400 font-mono">{b.customer_email}</div>}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    {b.customer_phone || b.customerPhone ? (
-                      <span className="inline-flex items-center gap-1 font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60 text-[11px]">
-                        📞 {b.customer_phone || b.customerPhone}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-600">{b.project_name || b.projectName || 'SCP Farm Layout'}</td>
-                  <td className="px-3 py-3.5 text-slate-500 font-mono">
-                    {b.created_at ? new Date(b.created_at).toLocaleDateString() : (b.bookingDate || '—')}
-                  </td>
-                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid || b.amountPaid || 0))}</td>
-                  <td className="px-4 py-3.5 text-right font-black text-red-600">{Number(b.balance_amount || b.balanceAmount || 0) > 0 ? formatCurrencyFull(Number(b.balance_amount || b.balanceAmount || 0)) : '—'}</td>
-                  <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
-                </tr>
-              ))
+              myBookings.map(b => {
+                const hasBalance = Number(b.balance_amount || b.balanceAmount || 0) > 0 && b.status !== 'sold';
+                return (
+                  <tr key={b.id} className="table-row-hover">
+                    <td className="px-5 py-3.5 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
+                    <td className="px-3 py-3.5 font-black text-slate-900">{b.plot_number || b.plotNumber || '—'}</td>
+                    <td className="px-4 py-3.5">
+                      <div className="font-bold text-slate-900">{b.customer_name || b.customerName || 'Valued Buyer'}</div>
+                      {b.customer_email && <div className="text-[10px] text-slate-400 font-mono">{b.customer_email}</div>}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      {b.customer_phone || b.customerPhone ? (
+                        <span className="inline-flex items-center gap-1 font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60 text-[11px]">
+                          📞 {b.customer_phone || b.customerPhone}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-600">{b.project_name || b.projectName || 'SCP Farm Layout'}</td>
+                    <td className="px-3 py-3.5 text-slate-500 font-mono">
+                      {b.created_at ? new Date(b.created_at).toLocaleDateString() : (b.bookingDate || '—')}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid || b.amountPaid || 0))}</td>
+                    <td className="px-4 py-3.5 text-right font-black text-red-600">{Number(b.balance_amount || b.balanceAmount || 0) > 0 ? formatCurrencyFull(Number(b.balance_amount || b.balanceAmount || 0)) : '—'}</td>
+                    <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
+                    <td className="px-6 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {hasBalance && (
+                          <button
+                            onClick={() => handlePayBalance(b)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                          >
+                            <CreditCard size={13} />
+                            Pay Balance
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleOpenReceipt(b)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          <Printer size={13} />
+                          Receipt
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Booking Wizard Modal for Paying Balance */}
+      {selectedPlotForPay && (
+        <BookingWizard
+          plot={selectedPlotForPay}
+          onClose={() => {
+            setSelectedPlotForPay(null);
+            loadData();
+          }}
+        />
+      )}
+
+      {/* Receipt Modal */}
+      {selectedReceipt && (
+        <PaymentReceiptModal
+          receipt={selectedReceipt}
+          onClose={() => setSelectedReceipt(null)}
+        />
+      )}
     </div>
   );
 };

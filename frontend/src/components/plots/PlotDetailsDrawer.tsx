@@ -22,24 +22,34 @@ export const PlotDetailsDrawer: React.FC<PlotDetailsDrawerProps> = ({ plot, onCl
   const { user } = useAuthStore();
   const { addNotification } = useNotificationStore();
 
-  // Ownership verification
+  // Ownership & Agent authorization verification
+  const userName = (user?.name || '').trim().toLowerCase();
+  const userEmail = (user?.email || '').trim().toLowerCase();
+  const custName = (plot?.customerName || '').trim().toLowerCase();
+  const custEmail = (plot?.customerEmail || '').trim().toLowerCase();
+  const cpName = (plot?.channelPartnerName || '').trim().toLowerCase();
+
   const isPlotOwner = Boolean(
     user && (
       (plot?.customerId && user.id === plot.customerId) ||
-      (plot?.customerEmail && user.email && plot.customerEmail.toLowerCase() === user.email.toLowerCase()) ||
-      (plot?.customerName && user.name && plot.customerName.toLowerCase() === user.name.toLowerCase())
+      (custEmail && userEmail && (custEmail === userEmail || custEmail.includes(userEmail))) ||
+      (custName && userName && (custName === userName || custName.includes(userName) || userName.includes(custName)))
     )
   );
 
-  const isAssignedPartner = Boolean(
-    user?.role === 'channel_partner' && (
+  const isAssignedPartnerOrStaff = Boolean(
+    user && (
+      user.role === 'channel_partner' || user.role === 'employee' || user.role === 'customer'
+    ) && (
       (plot?.channelPartnerId && user.id === plot.channelPartnerId) ||
-      (plot?.channelPartnerName && user.name && plot.channelPartnerName.toLowerCase() === user.name.toLowerCase())
+      ((plot as any)?.booked_by_user_id && user.id === (plot as any).booked_by_user_id) ||
+      (cpName && userName && (cpName === userName || cpName.includes(userName) || userName.includes(cpName))) ||
+      (cpName && userEmail && (cpName === userEmail || cpName.includes(userEmail)))
     )
   );
 
   const isSuperAdmin = user?.role === 'super_admin';
-  const canPayBalance = isPlotOwner || isAssignedPartner || isSuperAdmin;
+  const canPayBalance = isPlotOwner || isAssignedPartnerOrStaff || isSuperAdmin;
 
   // Prevent background body scroll when drawer is open
   useEffect(() => {

@@ -11,6 +11,8 @@ import { PlotMap } from '../../components/plots/PlotMap';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
 import { PaymentReceiptModal, ReceiptData } from '../../components/booking/PaymentReceiptModal';
+import { BookingWizard } from '../../components/booking/BookingWizard';
+import { CreditCard } from 'lucide-react';
 
 const isMyChannelBooking = (b: any, user: any) => {
   if (!user) return false;
@@ -259,18 +261,62 @@ export const ChannelCustomers: React.FC = () => {
 
 export const ChannelBookings: React.FC = () => {
   const { user } = useAuthStore();
+  const { plots, fetchPlots } = usePlotStore();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
+  const [selectedPlotForPay, setSelectedPlotForPay] = useState<Plot | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
+    fetchPlots();
     api.bookings.list()
       .then(data => setBookings(data || []))
       .catch(() => [])
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const myBookings = bookings.filter(b => isMyChannelBooking(b, user));
+
+  const handlePayBalance = (b: any) => {
+    const plotNum = b.plot_number || b.plotNumber;
+    const existingPlot = plots.find(p => p.plotNumber === plotNum || p.id === (b.plot_id || b.plotId));
+    const plotObj: Plot = existingPlot ? {
+      ...existingPlot,
+      customerName: b.customer_name || existingPlot.customerName,
+      customerPhone: b.customer_phone || existingPlot.customerPhone,
+      customerEmail: b.customer_email || existingPlot.customerEmail,
+      totalPrice: Number(b.total_amount || existingPlot.totalPrice),
+      totalPaid: Number(b.amount_paid || existingPlot.totalPaid || 0),
+      balanceDue: Number(b.balance_amount !== undefined ? b.balance_amount : (existingPlot.balanceDue || 0)),
+      status: b.status === 'token_paid' ? 'token_booked' : (b.status === 'confirmed' ? 'partial_booked' : existingPlot.status),
+    } : {
+      id: b.plot_id || b.id,
+      plotNumber: plotNum || 'Plot',
+      projectId: b.project_id || 'proj-1',
+      projectName: b.project_name || 'Green Valley Township',
+      location: 'Chennai Highway',
+      dimensions: '30x40',
+      area: 1200,
+      facing: 'North',
+      roadWidth: '30 ft',
+      pricePerSqft: 2500,
+      totalPrice: Number(b.total_amount || 3000000),
+      status: b.status === 'token_paid' ? 'token_booked' : 'partial_booked',
+      row: 1,
+      col: 1,
+      totalPaid: Number(b.amount_paid || 0),
+      balanceDue: Number(b.balance_amount || 0),
+      customerName: b.customer_name,
+      customerEmail: b.customer_email,
+      customerPhone: b.customer_phone,
+      channelPartnerName: user?.name,
+    };
+    setSelectedPlotForPay(plotObj);
+  };
 
   const handleOpenReceipt = (b: any) => {
     const receipt: ReceiptData = {
@@ -312,7 +358,7 @@ export const ChannelBookings: React.FC = () => {
               <th className="text-right px-4 py-3.5">Amount Paid</th>
               <th className="text-right px-4 py-3.5">Balance</th>
               <th className="text-left px-4 py-3.5">Status</th>
-              <th className="text-right px-6 py-3.5">Receipt</th>
+              <th className="text-right px-6 py-3.5">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -323,32 +369,57 @@ export const ChannelBookings: React.FC = () => {
                 <td colSpan={8} className="text-center py-8 text-slate-400 font-medium">No bookings recorded for your agency yet.</td>
               </tr>
             ) : (
-              myBookings.map(b => (
-                <tr key={b.id} className="table-row-hover">
-                  <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
-                  <td className="px-4 py-3.5 font-black text-slate-900">{b.plot_number || '—'}</td>
-                  <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customer_name}</td>
-                  <td className="px-4 py-3.5 text-slate-500 font-mono">
-                    {b.created_at ? new Date(b.created_at).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid))}</td>
-                  <td className="px-4 py-3.5 text-right font-black text-red-600">{Number(b.balance_amount) > 0 ? formatCurrencyFull(Number(b.balance_amount)) : '—'}</td>
-                  <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
-                  <td className="px-6 py-3.5 text-right">
-                    <button
-                      onClick={() => handleOpenReceipt(b)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded-xl font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      <Printer size={13} />
-                      Receipt
-                    </button>
-                  </td>
-                </tr>
-              ))
+              myBookings.map(b => {
+                const hasBalance = Number(b.balance_amount) > 0 && b.status !== 'sold';
+                return (
+                  <tr key={b.id} className="table-row-hover">
+                    <td className="px-6 py-3.5 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
+                    <td className="px-4 py-3.5 font-black text-slate-900">{b.plot_number || '—'}</td>
+                    <td className="px-4 py-3.5 text-slate-700 font-medium">{b.customer_name}</td>
+                    <td className="px-4 py-3.5 text-slate-500 font-mono">
+                      {b.created_at ? new Date(b.created_at).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid))}</td>
+                    <td className="px-4 py-3.5 text-right font-black text-red-600">{Number(b.balance_amount) > 0 ? formatCurrencyFull(Number(b.balance_amount)) : '—'}</td>
+                    <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
+                    <td className="px-6 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {hasBalance && (
+                          <button
+                            onClick={() => handlePayBalance(b)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                          >
+                            <CreditCard size={13} />
+                            Pay Balance
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleOpenReceipt(b)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          <Printer size={13} />
+                          Receipt
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Booking Wizard Modal for Paying Balance */}
+      {selectedPlotForPay && (
+        <BookingWizard
+          plot={selectedPlotForPay}
+          onClose={() => {
+            setSelectedPlotForPay(null);
+            loadData();
+          }}
+        />
+      )}
 
       {/* Receipt Modal */}
       {selectedReceipt && (
@@ -589,7 +660,7 @@ export const ChannelReports: React.FC = () => {
 
   const totalSalesValue = filteredBookings.reduce((sum, b) => sum + Number(b.total_amount || b.totalAmount || 0), 0);
   const totalCollected = filteredBookings.reduce((sum, b) => sum + Number(b.amount_paid || b.amountPaid || 0), 0);
-  const commissionEarned = totalSalesValue * 0.025; // 2.5% standard commission
+  const totalBalance = filteredBookings.reduce((sum, b) => sum + Number(b.balance_amount || b.balanceAmount || 0), 0);
 
   const exportPartnerSalesReport = () => {
     try {
@@ -603,8 +674,6 @@ export const ChannelReports: React.FC = () => {
         'Amount Collected (INR)',
         'Balance Due (INR)',
         'Booking Status',
-        'Commission Rate',
-        'Commission Earned (INR)',
         'Booking Date'
       ];
 
@@ -623,8 +692,6 @@ export const ChannelReports: React.FC = () => {
           paid,
           balance,
           `"${(b.status || 'token_paid').replace('_', ' ').toUpperCase()}"`,
-          '2.5%',
-          total * 0.025,
           `"${b.created_at || b.booking_date ? new Date(b.created_at || b.booking_date).toLocaleDateString('en-IN') : ''}"`
         ];
       });
@@ -774,9 +841,9 @@ export const ChannelReports: React.FC = () => {
           <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Client Collections</div>
         </div>
         <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <IndianRupee size={18} className="text-indigo-600 mb-1.5" />
-          <div className="text-2xl font-black text-indigo-700">{formatCurrencyFull(commissionEarned)}</div>
-          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Est. Commission (2.5%)</div>
+          <IndianRupee size={18} className="text-red-500 mb-1.5" />
+          <div className="text-2xl font-black text-red-600">{formatCurrencyFull(totalBalance)}</div>
+          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Balance Due</div>
         </div>
       </div>
 
@@ -809,7 +876,7 @@ export const ChannelReports: React.FC = () => {
                   <th className="text-left px-4 py-3">Date</th>
                   <th className="text-right px-4 py-3">Plot Value</th>
                   <th className="text-right px-4 py-3">Amount Collected</th>
-                  <th className="text-right px-4 py-3">Commission (2.5%)</th>
+                  <th className="text-right px-4 py-3">Balance Due</th>
                   <th className="text-left px-4 py-3">Status</th>
                 </tr>
               </thead>
@@ -818,6 +885,7 @@ export const ChannelReports: React.FC = () => {
                   const plotNum = b.plot_number || b.plotNumber;
                   const total = Number(b.total_amount || b.totalAmount || 0);
                   const paid = Number(b.amount_paid || b.amountPaid || 0);
+                  const balance = Number(b.balance_amount || b.balanceAmount || 0);
                   return (
                     <tr key={b.id} className="table-row-hover">
                       <td className="px-4 py-3 font-black text-slate-900">{plotNum || 'Plot'}</td>
@@ -828,7 +896,7 @@ export const ChannelReports: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-right font-black text-slate-900">{formatCurrencyFull(total)}</td>
                       <td className="px-4 py-3 text-right font-black text-emerald-700">{formatCurrencyFull(paid)}</td>
-                      <td className="px-4 py-3 text-right font-black text-indigo-700">{formatCurrencyFull(total * 0.025)}</td>
+                      <td className="px-4 py-3 text-right font-black text-red-600">{balance > 0 ? formatCurrencyFull(balance) : '—'}</td>
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                     </tr>
                   );
@@ -892,7 +960,7 @@ export const ChannelProfile: React.FC = () => {
         </div>
         <div className="space-y-2 text-xs">
           <div className="flex justify-between py-2 border-b border-slate-100"><span className="text-slate-400 font-medium">Email:</span><span className="font-bold text-slate-800">{user?.email}</span></div>
-          <div className="flex justify-between py-2 border-b border-slate-100"><span className="text-slate-400 font-medium">Commission Rate:</span><span className="font-black text-emerald-700">2.5%</span></div>
+          <div className="flex justify-between py-2 border-b border-slate-100"><span className="text-slate-400 font-medium">Partner Type:</span><span className="font-bold text-slate-800">Authorized Channel Partner</span></div>
           <div className="flex justify-between py-2"><span className="text-slate-400 font-medium">Account Status:</span><span className="text-emerald-700 font-bold">Active & Verified</span></div>
         </div>
       </div>
