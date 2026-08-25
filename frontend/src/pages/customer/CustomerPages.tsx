@@ -343,7 +343,11 @@ export const CustomerBookings: React.FC = () => {
               </tr>
             ) : (
               myBookings.map(b => {
-                const hasBalance = Number(b.balance_amount || b.balanceAmount || 0) > 0 && b.status !== 'sold';
+                const total = Number(b.total_amount || b.totalAmount || 0);
+                const paid = Number(b.amount_paid || b.amountPaid || 0);
+                const rawBal = b.balance_amount !== undefined && b.balance_amount !== null ? Number(b.balance_amount) : (b.balanceAmount !== undefined ? Number(b.balanceAmount) : null);
+                const balance = rawBal !== null && rawBal > 0 ? rawBal : (total > 0 ? Math.max(0, total - paid) : 0);
+                const hasBalance = (balance > 0 || b.status === 'token_paid' || b.status === 'confirmed' || b.status === 'partial_paid') && b.status !== 'sold';
                 return (
                   <tr key={b.id} className="table-row-hover">
                     <td className="px-5 py-3.5 font-mono font-bold text-blue-700">{b.booking_reference || b.id.slice(0, 8)}</td>
@@ -365,8 +369,8 @@ export const CustomerBookings: React.FC = () => {
                     <td className="px-3 py-3.5 text-slate-500 font-mono">
                       {b.created_at ? new Date(b.created_at).toLocaleDateString() : (b.bookingDate || '—')}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(Number(b.amount_paid || b.amountPaid || 0))}</td>
-                    <td className="px-4 py-3.5 text-right font-black text-red-600">{Number(b.balance_amount || b.balanceAmount || 0) > 0 ? formatCurrencyFull(Number(b.balance_amount || b.balanceAmount || 0)) : '—'}</td>
+                    <td className="px-4 py-3.5 text-right font-black text-emerald-700">{formatCurrencyFull(paid)}</td>
+                    <td className="px-4 py-3.5 text-right font-black text-red-600">{balance > 0 ? formatCurrencyFull(balance) : '—'}</td>
                     <td className="px-4 py-3.5"><StatusBadge status={b.status} /></td>
                     <td className="px-6 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
