@@ -288,6 +288,35 @@ export const api = {
         throw new Error(err.detail || 'Failed to fetch customer detail');
       }
       return await res.json();
+    },
+
+    update: async (customerId: string, payload: {
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+      phone?: string;
+      address_line_1?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+      status?: string;
+      assigned_channel_partner_id?: string;
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        let msg = 'Failed to update customer';
+        if (typeof data.detail === 'string') msg = data.detail;
+        else if (Array.isArray(data.detail) && data.detail.length > 0) {
+          msg = data.detail.map((d: any) => `${d.loc ? d.loc[d.loc.length - 1] + ': ' : ''}${d.msg}`).join(', ');
+        }
+        throw new Error(msg);
+      }
+      return data;
     }
   },
 

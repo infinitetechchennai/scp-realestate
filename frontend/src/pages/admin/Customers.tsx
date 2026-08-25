@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBadge, Modal } from '../../components/ui/UIComponents';
-import { Search, UserPlus, RefreshCw, Key, Building2, MapPin, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { Search, UserPlus, RefreshCw, Key, Building2, MapPin, Mail, Phone, ShieldCheck, Edit3, CheckCircle2 } from 'lucide-react';
 import { formatCurrencyFull } from '../../utils/helpers';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -31,7 +31,21 @@ export const AdminCustomers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerItem | null>(null);
+
+  // Edit Form State
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    city: '',
+    state: '',
+    address: '',
+    status: 'active',
+    assigned_partner_id: '',
+  });
 
   // Customer Create Form State
   const [form, setForm] = useState({
@@ -54,7 +68,7 @@ export const AdminCustomers: React.FC = () => {
       const data = await api.customers.list(search);
       setCustomers(data);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to load customers from server');
+      toast.error(err.message || 'Failed to load records from server');
     } finally {
       setLoading(false);
     }
@@ -126,13 +140,65 @@ export const AdminCustomers: React.FC = () => {
     }
   };
 
+  const handleOpenEdit = (customer: CustomerItem) => {
+    setEditingCustomer(customer);
+    setEditForm({
+      name: customer.name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim(),
+      email: customer.email || '',
+      phone: customer.phone || '',
+      city: customer.city || '',
+      state: customer.state || '',
+      address: customer.address || '',
+      status: customer.status || 'active',
+      assigned_partner_id: customer.assigned_partner_id || '',
+    });
+    setShowEdit(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCustomer) return;
+    if (!editForm.name.trim() || !editForm.email.trim() || !editForm.phone.trim()) {
+      toast.error('Name, email, and mobile phone number are required');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const nameParts = editForm.name.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || undefined;
+
+      await api.customers.update(editingCustomer.id, {
+        first_name: firstName,
+        last_name: lastName,
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim(),
+        city: editForm.city || undefined,
+        state: editForm.state || undefined,
+        address_line_1: editForm.address || undefined,
+        status: editForm.status,
+        assigned_channel_partner_id: editForm.assigned_partner_id || undefined,
+      });
+
+      toast.success('✓ User / Employee details updated successfully!');
+      setShowEdit(false);
+      setEditingCustomer(null);
+      fetchCustomers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update user details');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Customers Directory</h1>
+          <h1 className="text-2xl font-black text-slate-900">Employees & Users Directory</h1>
           <p className="text-slate-500 text-xs font-medium mt-0.5">
-            {customers.length} registered buyers and active leads in PostgreSQL
+            {customers.length} registered staff, executives, and clients in PostgreSQL
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -148,7 +214,7 @@ export const AdminCustomers: React.FC = () => {
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-500/20"
           >
             <UserPlus size={16} />
-            <span>Create Customer</span>
+            <span>Create New</span>
           </button>
         </div>
       </div>
@@ -168,26 +234,27 @@ export const AdminCustomers: React.FC = () => {
           <table className="w-full text-xs">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-                <th className="text-left px-6 py-3.5">Customer Name</th>
+                <th className="text-left px-6 py-3.5">Name</th>
                 <th className="text-left px-4 py-3.5">Phone Number</th>
                 <th className="text-left px-4 py-3.5">Email Address</th>
                 <th className="text-left px-4 py-3.5">Assigned Partner</th>
                 <th className="text-left px-4 py-3.5">City / Location</th>
                 <th className="text-left px-4 py-3.5">Status</th>
+                <th className="text-right px-6 py-3.5">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
+                  <td colSpan={7} className="text-center py-10 text-slate-400">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <span>Loading customers from PostgreSQL...</span>
+                    <span>Loading records from PostgreSQL...</span>
                   </td>
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-400">
-                    No customers found in database. Click <strong>"+ Create Customer"</strong> to add one.
+                  <td colSpan={7} className="text-center py-10 text-slate-400">
+                    No records found in database. Click <strong>"+ Create New"</strong> to add one.
                   </td>
                 </tr>
               ) : (
@@ -196,7 +263,7 @@ export const AdminCustomers: React.FC = () => {
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center text-blue-900 font-black text-xs">
-                          {c.name.charAt(0) || 'C'}
+                          {c.name.charAt(0) || 'U'}
                         </div>
                         <div>
                           <div className="font-bold text-slate-900">{c.name}</div>
@@ -215,6 +282,15 @@ export const AdminCustomers: React.FC = () => {
                       {c.city ? `${c.city}${c.state ? `, ${c.state}` : ''}` : '—'}
                     </td>
                     <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
+                    <td className="px-6 py-3.5 text-right">
+                      <button
+                        onClick={() => handleOpenEdit(c)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -222,9 +298,141 @@ export const AdminCustomers: React.FC = () => {
           </table>
         </div>
         <div className="px-6 py-3 border-t border-slate-100 text-[11px] text-slate-400 font-medium bg-slate-50/50">
-          Showing {customers.length} registered customers in database
+          Showing {customers.length} registered records in database
         </div>
       </div>
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* EDIT USER DETAILS MODAL */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <Modal isOpen={showEdit} onClose={() => setShowEdit(false)} title="Edit User / Employee Details" size="md">
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2">
+            <CheckCircle2 size={16} className="text-blue-600 mt-0.5 shrink-0" />
+            <span>
+              Update contact information, residential location, and status in PostgreSQL.
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Full Name */}
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
+              <input
+                required
+                value={editForm.name}
+                onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Full Name"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Email Address *</label>
+              <input
+                required
+                type="email"
+                value={editForm.email}
+                onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="user@example.com"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
+              />
+            </div>
+
+            {/* Mobile Phone */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Phone *</label>
+              <input
+                required
+                value={editForm.phone}
+                onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="Mobile number"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Account Status</label>
+              <select
+                value={editForm.status}
+                onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none bg-white"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+
+            {/* Assigned Partner */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Partner</label>
+              <select
+                value={editForm.assigned_partner_id}
+                onChange={e => setEditForm(f => ({ ...f, assigned_partner_id: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none bg-white"
+              >
+                <option value="">Direct (No Partner)</option>
+                {partners.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.company_name} ({p.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* City & State */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">City</label>
+              <input
+                value={editForm.city}
+                onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))}
+                placeholder="e.g. Chennai"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">State</label>
+              <input
+                value={editForm.state}
+                onChange={e => setEditForm(f => ({ ...f, state: e.target.value }))}
+                placeholder="e.g. Tamil Nadu"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none"
+              />
+            </div>
+
+            {/* Address */}
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold text-slate-700 block mb-1">Address</label>
+              <textarea
+                value={editForm.address}
+                onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:border-sky-500 outline-none h-16 resize-none"
+                placeholder="Door No, Street Name, Landmark"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setShowEdit(false)}
+              className="px-4 py-2.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2.5 text-xs text-white bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 rounded-xl font-black uppercase tracking-wider shadow-sm transition-all flex items-center gap-1.5"
+            >
+              {submitting ? 'Updating...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* ───────────────────────────────────────────────────────────── */}
       {/* CREATE CUSTOMER MODAL */}

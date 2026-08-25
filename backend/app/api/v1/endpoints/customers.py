@@ -12,7 +12,7 @@ from app.core.security import get_password_hash
 from app.models.user import User, Role, UserRole
 from app.models.customer import Customer
 from app.models.channel_partner import ChannelPartner
-from app.schemas.customer import CustomerCreateRequest, CustomerListItem, CustomerDetail
+from app.schemas.customer import CustomerCreateRequest, CustomerUpdateRequest, CustomerListItem, CustomerDetail
 
 router = APIRouter()
 
@@ -227,6 +227,94 @@ async def get_customer_detail(
         total_paid=0.0,
         total_balance=0.0,
         allocated_plots_count=0,
+        status=customer.status,
+        created_at=customer.created_at,
+    )
+
+
+@router.patch("/{customer_id}", response_model=CustomerListItem)
+async def update_customer(
+    customer_id: uuid.UUID,
+    req: CustomerUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    stmt = select(Customer).where(Customer.id == customer_id)
+    res = await db.execute(stmt)
+    customer = res.scalar_one_or_none()
+
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer not found",
+        )
+
+    if req.first_name is not None:
+        customer.first_name = req.first_name.strip()
+    if req.last_name is not None:
+        customer.last_name = req.last_name.strip()
+    if req.email is not None:
+        customer.email = req.email.lower().strip()
+    if req.phone is not None:
+        customer.phone = req.phone.strip()
+    if req.address_line_1 is not None:
+        customer.address_line_1 = req.address_line_1.strip()
+    if req.city is not None:
+        customer.city = req.city.strip()
+    if req.state is not None:
+        customer.state = req.state.strip()
+    if req.postal_code is not None:
+        customer.postal_code = req.postal_code.strip()
+    if req.status is not None:
+        customer.status = req.status
+    if req.assigned_channel_partner_id is not None:
+        customer.assigned_channel_partner_id = req.assigned_channel_partner_id
+
+    # If linked user exists, keep User name and email synchronized
+    if customer.user_id:
+        user_stmt = select(User).where(User.id == customer.user_id)
+        user_res = await db.execute(user_stmt)
+        user_obj = user_res.scalar_one_or_none()
+        if user_obj:
+            if req.first_name is not None:
+                user_obj.first_name = req.first_name.strip()
+            if req.last_name is not None:
+                user_obj.last_name = req.last_name.strip()
+            if req.email is not None:
+                user_obj.email = req.email.lower().strip()
+            if req.phone is not None:
+                user_obj.phone = req.phone.strip()
+
+    await db.commit()
+    await db.refresh(customer)
+
+    full_name = f"{customer.first_name} {customer.last_name or ''}".strip()
+    partner_name = customer.channel_partner.company_name if customer.channel_partner else "Direct"
+
+    plot_count = 0
+    total_paid = 0.0
+    total_balance = 0.0
+    if customer.bookings:
+        active_b = [b for b in customer.bookings if b.status != "cancelled"]
+        plot_count = len(active_b)
+        total_paid = sum(float(b.amount_paid or 0) for b in active_b)
+        total_balance = sum(float(b.balance_amount or 0) for b in active_b)
+
+    return CustomerListItem(
+        id=customer.id,
+        user_id=customer.user_id,
+        name=full_name,
+        first_name=customer.first_name,
+        last_name=customer.last_name,
+        email=customer.email,
+        phone=customer.phone,
+        address=customer.address_line_1,
+        city=customer.city,
+        state=customer.state,
+        assigned_partner_id=customer.assigned_channel_partner_id,
+        assigned_partner_name=partner_name,
+        total_paid=total_paid,
+        total_balance=total_balance,
+        allocated_plots_count=plot_count,
         status=customer.status,
         created_at=customer.created_at,
     )

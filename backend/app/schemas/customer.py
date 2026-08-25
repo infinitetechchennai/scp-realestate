@@ -19,6 +19,19 @@ class CustomerCreateRequest(BaseModel):
     assigned_channel_partner_id: Optional[uuid.UUID] = None
 
 
+class CustomerUpdateRequest(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    address_line_1: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    status: Optional[str] = None
+    assigned_channel_partner_id: Optional[uuid.UUID] = None
+
+
 class CustomerListItem(BaseModel):
     id: uuid.UUID
     user_id: Optional[uuid.UUID] = None
