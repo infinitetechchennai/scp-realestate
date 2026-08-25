@@ -141,7 +141,7 @@ async def lifespan(app: FastAPI):
                     area_sqft=area,
                     dimensions="30x50",
                     facing=facing,
-                    road_width_ft=16.0 if i <= 15 else 20.0,
+                    road_width_ft=road_width,
                     price_per_sqft=rate,
                     total_price=total_price,
                     token_required=20000.0,
