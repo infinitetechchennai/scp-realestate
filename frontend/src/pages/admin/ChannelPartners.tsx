@@ -49,14 +49,14 @@ export const AdminChannelPartners: React.FC = () => {
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [actionConfirm, setActionConfirm] = useState<{ cp: PartnerRow; action: 'approve' | 'reject' | 'suspend' } | null>(null);
-  
+
   // KYC Review State
   const [selectedPartnerKyc, setSelectedPartnerKyc] = useState<PartnerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [qrPaymentPartner, setQrPaymentPartner] = useState<PartnerRow | null>(null);
-  
+
   // Visual Document Preview State
   const [previewDoc, setPreviewDoc] = useState<{ type: 'aadhar' | 'pan'; partner: PartnerDetail } | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -156,7 +156,7 @@ export const AdminChannelPartners: React.FC = () => {
   // Helper to retrieve uploaded file Data URL or Backend Stream URL
   const getUploadedFileUrl = (type: 'aadhar' | 'pan', partner?: PartnerDetail) => {
     if (partner) {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
       const backendHost = apiBase.replace(/\/api\/v1\/?$/, '');
 
       if (type === 'aadhar' && partner.aadhar_file_url) {
@@ -300,11 +300,10 @@ export const AdminChannelPartners: React.FC = () => {
                     <td className="px-4 py-3.5">
                       <button
                         onClick={() => setQrPaymentPartner(cp)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 transition-all ${
-                          cp.registration_fee_paid
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 transition-all ${cp.registration_fee_paid
                             ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs font-extrabold'
                             : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 active:scale-95 shadow-2xs'
-                        }`}
+                          }`}
                         title={cp.registration_fee_paid ? 'Fee Confirmed via Google Pay' : 'Click to Open ₹500 Google Pay QR Code'}
                       >
                         <QrCode size={12} className={cp.registration_fee_paid ? 'text-emerald-600' : 'text-rose-600'} />

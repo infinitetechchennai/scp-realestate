@@ -3,7 +3,7 @@ import { Plot, Project } from '../types';
 import { api } from '../services/api';
 import { addDays, format, isAfter } from 'date-fns';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
 
 interface PlotState {
   plots: Plot[];
@@ -152,14 +152,14 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
       plots: state.plots.map((p) =>
         p.id === plotId
           ? {
-              ...p,
-              status: 'token_booked',
-              tokenDate: today,
-              tokenExpiry: expiry,
-              totalPaid: bookingData.tokenAmount || p.tokenRequired || 10000,
-              balanceDue: Math.max(0, p.totalPrice - (bookingData.tokenAmount || p.tokenRequired || 10000)),
-              ...bookingData,
-            }
+            ...p,
+            status: 'token_booked',
+            tokenDate: today,
+            tokenExpiry: expiry,
+            totalPaid: bookingData.tokenAmount || p.tokenRequired || 10000,
+            balanceDue: Math.max(0, p.totalPrice - (bookingData.tokenAmount || p.tokenRequired || 10000)),
+            ...bookingData,
+          }
           : p
       ),
     }));
@@ -185,14 +185,14 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
       plots: state.plots.map((p) =>
         p.id === plotId
           ? {
-              ...p,
-              status: 'partial_booked',
-              bookingDate: today,
-              confirmedDate: today,
-              paymentDeadline: deadline,
-              balanceDue: Math.max(0, p.totalPrice - (bookingData.totalPaid || p.totalPrice * 0.5)),
-              ...bookingData,
-            }
+            ...p,
+            status: 'partial_booked',
+            bookingDate: today,
+            confirmedDate: today,
+            paymentDeadline: deadline,
+            balanceDue: Math.max(0, p.totalPrice - (bookingData.totalPaid || p.totalPrice * 0.5)),
+            ...bookingData,
+          }
           : p
       ),
     }));
@@ -218,16 +218,16 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
       plots: state.plots.map((p) =>
         p.id === plotId
           ? {
-              ...p,
-              status: 'sold',
-              soldDate: today,
-              bookingDate: today,
-              totalPaid: p.totalPrice,
-              balanceDue: 0,
-              tokenExpiry: undefined,
-              paymentDeadline: undefined,
-              ...bookingData,
-            }
+            ...p,
+            status: 'sold',
+            soldDate: today,
+            bookingDate: today,
+            totalPaid: p.totalPrice,
+            balanceDue: 0,
+            tokenExpiry: undefined,
+            paymentDeadline: undefined,
+            ...bookingData,
+          }
           : p
       ),
     }));
@@ -303,14 +303,14 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
       plots: state.plots.map((p) =>
         p.id === plotId
           ? {
-              ...p,
-              status: 'available',
-              tokenAmount: undefined,
-              tokenDate: undefined,
-              tokenExpiry: undefined,
-              totalPaid: undefined,
-              balanceDue: undefined,
-            }
+            ...p,
+            status: 'available',
+            tokenAmount: undefined,
+            tokenDate: undefined,
+            tokenExpiry: undefined,
+            totalPaid: undefined,
+            balanceDue: undefined,
+          }
           : p
       ),
     })),
@@ -320,13 +320,13 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
       plots: state.plots.map((p) =>
         p.id === plotId
           ? {
-              ...p,
-              status: 'available',
-              bookingDate: undefined,
-              paymentDeadline: undefined,
-              totalPaid: undefined,
-              balanceDue: undefined,
-            }
+            ...p,
+            status: 'available',
+            bookingDate: undefined,
+            paymentDeadline: undefined,
+            totalPaid: undefined,
+            balanceDue: undefined,
+          }
           : p
       ),
     })),

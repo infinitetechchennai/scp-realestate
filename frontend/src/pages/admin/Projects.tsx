@@ -8,7 +8,7 @@ import { usePlotStore } from "../../store/plotStore";
 import { parsePlotCsv } from "../../utils/csvParser";
 import toast from "react-hot-toast";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
 
 export const AdminProjects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
