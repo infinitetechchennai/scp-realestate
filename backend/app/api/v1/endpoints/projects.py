@@ -13,6 +13,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[ProjectResponse])
+@router.get("/", response_model=List[ProjectResponse])
 async def get_projects(db: AsyncSession = Depends(get_db)) -> Any:
     """
     Fetch all projects dynamically with computed plot statistics from app.plots.

@@ -27,7 +27,6 @@ const routeLabels: Record<string, string[]> = {
   '/channel/bookings': ['Channel Partner', 'My Bookings'],
   '/channel/payments': ['Channel Partner', 'Payments'],
   '/channel/reports': ['Channel Partner', 'Reports'],
-  '/channel/documents': ['Channel Partner', 'Documents'],
   '/channel/profile': ['Channel Partner', 'Profile'],
   '/customer/dashboard': ['Customer', 'Dashboard'],
   '/customer/projects': ['Customer', 'Projects'],

@@ -38,7 +38,6 @@ const channelNav: NavItem[] = [
   { label: 'My Bookings', icon: BookOpen, to: '/channel/bookings' },
   { label: 'Payments', icon: CreditCard, to: '/channel/payments' },
   { label: 'Reports', icon: FileBarChart, to: '/channel/reports' },
-  { label: 'Documents', icon: FolderOpen, to: '/channel/documents' },
   { label: 'Profile', icon: UserCircle, to: '/channel/profile' },
 ];
 

@@ -64,7 +64,7 @@ export const usePlotStore = create<PlotState>()((set, get) => ({
   fetchPlots: async (projectId?: string) => {
     set({ loading: true });
     try {
-      const res = await fetch(`${API_BASE_URL}/plots/`);
+      const res = await fetch(`${API_BASE_URL}/plots`);
       if (res.ok) {
         const dbPlots = await res.json();
         if (Array.isArray(dbPlots) && dbPlots.length > 0) {

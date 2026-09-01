@@ -31,7 +31,7 @@ import { ChannelDashboard } from './pages/channel/Dashboard';
 import {
   ChannelPlots, ChannelProjects, ChannelCustomers,
   ChannelBookings, ChannelPayments, ChannelCommission,
-  ChannelProfile, ChannelDocuments, ChannelReports
+  ChannelProfile, ChannelReports
 } from './pages/channel/ChannelPages';
 
 // Customer Pages
@@ -121,7 +121,6 @@ function App() {
           <Route path="bookings" element={<ChannelBookings />} />
           <Route path="payments" element={<ChannelPayments />} />
           <Route path="reports" element={<ChannelReports />} />
-          <Route path="documents" element={<ChannelDocuments />} />
           <Route path="profile" element={<ChannelProfile />} />
         </Route>
 

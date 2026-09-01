@@ -23,7 +23,7 @@ export const AdminProjects: React.FC = () => {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/projects/`);
+      const res = await fetch(`${API_BASE_URL}/projects`);
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
